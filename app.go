@@ -97,8 +97,10 @@ func main() {
 			domain:    *bucketDomain,
 		}
 		infoLogger.Printf("Config: [bucket: %s] [domain: %s]", s3.bucket, s3.domain)
+
 		fih := &fiHandler{}
 		go func(fih *fiHandler) {
+			infoLogger.Println("Started loading FIs.")
 			start := time.Now()
 			fis, err := loadFIs(s3)
 			if err != nil {
@@ -111,7 +113,6 @@ func main() {
 			infoLogger.Printf("Nr of FIs: [%v]", len(fis))
 
 		}(fih)
-
 		listen(fih, *port)
 	}
 
@@ -127,6 +128,8 @@ func listen(fih *fiHandler, port int) {
 	r.HandleFunc("/transformers/financialinstruments/__count", fih.count).Methods("GET")
 	r.HandleFunc("/transformers/financialinstruments/__ids", fih.ids).Methods("GET")
 	r.HandleFunc("/transformers/financialinstruments/{id}", fih.id).Methods("GET")
+	r.HandleFunc("/__health", fih.health()).Methods("GET")
+	r.HandleFunc("/__gtg", fih.gtg).Methods("GET")
 	err := http.ListenAndServe(":"+strconv.Itoa(port), r)
 	if err != nil {
 		errorLogger.Println(err)
