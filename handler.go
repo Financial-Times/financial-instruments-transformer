@@ -25,7 +25,7 @@ type alternativeIDs struct {
 	FIGI      string   `json:"figiCode"`
 }
 
-func (fi fiHandler) count(w http.ResponseWriter, r *http.Request) {
+func (fi *fiHandler) count(w http.ResponseWriter, r *http.Request) {
 	if fi.financialInstruments == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
@@ -33,7 +33,7 @@ func (fi fiHandler) count(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(strconv.Itoa(len(fi.financialInstruments))))
 }
 
-func (fi fiHandler) ids(w http.ResponseWriter, r *http.Request) {
+func (fi *fiHandler) ids(w http.ResponseWriter, r *http.Request) {
 	if fi.financialInstruments == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
@@ -51,7 +51,7 @@ func (fi fiHandler) ids(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (fi fiHandler) id(w http.ResponseWriter, r *http.Request) {
+func (fi *fiHandler) id(w http.ResponseWriter, r *http.Request) {
 	if fi.financialInstruments == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return

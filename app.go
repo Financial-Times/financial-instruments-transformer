@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	"github.com/pborman/uuid"
 	"github.com/rlmcpherson/s3gof3r"
@@ -95,16 +96,23 @@ func main() {
 			bucket:    *bucketName,
 			domain:    *bucketDomain,
 		}
-		fih := fiHandler{}
-		go listen(fih, *port)
-		start := time.Now()
-		fis, err := loadFIs(s3)
-		if err != nil {
-			errorLogger.Println(err)
-			return
-		}
-		infoLogger.Printf("Loading FIs finished in [%v]", time.Now().Sub(start))
-		infoLogger.Println("Nr of FIs: ", len(fis))
+		infoLogger.Printf("Config: [bucket: %s] [domain: %s]", s3.bucket, s3.domain)
+		fih := &fiHandler{}
+		go func(fih *fiHandler) {
+			start := time.Now()
+			fis, err := loadFIs(s3)
+			if err != nil {
+				errorLogger.Println(err)
+				return
+			}
+			fih.financialInstruments = fis
+
+			infoLogger.Printf("Loading FIs finished in [%v]", time.Now().Sub(start))
+			infoLogger.Printf("Nr of FIs: [%v]", len(fis))
+
+		}(fih)
+
+		listen(fih, *port)
 	}
 
 	err := app.Run(os.Args)
@@ -113,9 +121,13 @@ func main() {
 	}
 }
 
-func listen(fih fiHandler, port int) {
+func listen(fih *fiHandler, port int) {
 	infoLogger.Println("Listening on port:", port)
-	err := http.ListenAndServe(":"+strconv.Itoa(port), nil)
+	r := mux.NewRouter()
+	r.HandleFunc("/transformers/financialinstruments/__count", fih.count).Methods("GET")
+	r.HandleFunc("/transformers/financialinstruments/__ids", fih.ids).Methods("GET")
+	r.HandleFunc("/transformers/financialinstruments/{id}", fih.id).Methods("GET")
+	err := http.ListenAndServe(":"+strconv.Itoa(port), r)
 	if err != nil {
 		errorLogger.Println(err)
 	}
@@ -138,7 +150,7 @@ func loadFIs(c s3Config) (map[string]financialInstrument, error) {
 	if err != nil {
 		return nil, err
 	}
-	infoLogger.Printf("Fetched securities. Nr of records:", len(rawFIs))
+	infoLogger.Printf("Fetched securities. Nr of records: [%d]", len(rawFIs))
 
 	r, _, err = b.GetReader(bbgIDs, nil)
 	if err != nil {
@@ -149,7 +161,7 @@ func loadFIs(c s3Config) (map[string]financialInstrument, error) {
 	if err != nil {
 		return nil, err
 	}
-	infoLogger.Println("Fetched figi codes. Nr of records:", len(figiCodes))
+	infoLogger.Printf("Fetched figi codes. Nr of records: [%d]", len(figiCodes))
 
 	return transform(rawFIs, figiCodes), nil
 }
