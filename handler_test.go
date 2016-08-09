@@ -81,22 +81,26 @@ func TestIds_FinancialInstrumentsMapIsNil_ServiceUnavailableStatusCode(t *testin
 	}
 }
 
-func TestIds_FinancialInstrumentsMapIsNotNil_IdsInStreamingJsonFormatReturned(t *testing.T) {
+func TestIds_FinancialInstrumentsMapIsNotNil_IdsInStreamingJsonFormatAreReturned(t *testing.T) {
 	var testCases = []struct {
 		fiMap    map[string]financialInstrument
-		response string
+		expected []string
 	}{
 		{
 			fiMap:    make(map[string]financialInstrument),
-			response: "",
+			expected: []string{""},
 		},
 		{
 			fiMap:    map[string]financialInstrument{"foo": financialInstrument{}},
-			response: `{"id":"foo"}` + "\n",
+			expected: []string{`{"id":"foo"}` + "\n"},
 		},
 		{
-			fiMap:    map[string]financialInstrument{"foo": financialInstrument{}, "bar": financialInstrument{}},
-			response: `{"id":"foo"}` + "\n" + `{"id":"bar"}` + "\n",
+			fiMap: map[string]financialInstrument{"foo": financialInstrument{}, "bar": financialInstrument{}},
+			//map order is random, hence the multiple valid responses
+			expected: []string{
+				`{"id":"foo"}` + "\n" + `{"id":"bar"}` + "\n",
+				`{"id":"bar"}` + "\n" + `{"id":"foo"}` + "\n",
+			},
 		},
 	}
 
@@ -112,9 +116,9 @@ func TestIds_FinancialInstrumentsMapIsNotNil_IdsInStreamingJsonFormatReturned(t 
 		if w.Code != 200 {
 			t.Errorf("Expected statusCode [%d]. Actual: [%d]", 200, w.Code)
 		}
-		resp := w.Body.String()
-		if resp != tc.response {
-			t.Errorf("Expected resp [%s]. Actual: [%s]", tc.response, resp)
+		actual := w.Body.String()
+		if !equals(actual, tc.expected) {
+			t.Errorf("Expected resp [%s]. Actual: [%s]", tc.expected, actual)
 		}
 	}
 }
@@ -190,4 +194,13 @@ func TestId_FinancialInstrumentExists_OkStatusAndCorrectFIReturned(t *testing.T)
 	if actual != expected {
 		t.Errorf("Expected: [%s]. Actual: [%s]", expected, actual)
 	}
+}
+
+func equals(actual string, expected []string) bool {
+	for _, e := range expected {
+		if e == actual {
+			return true
+		}
+	}
+	return false
 }
