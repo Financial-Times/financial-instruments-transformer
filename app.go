@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
 	"io"
 	"net/http"
 	_ "net/http/pprof"
@@ -19,7 +20,7 @@ import (
 const bbgIDs = "edm_bbg_ids.txt"
 const securityEntityMap = "edm_security_entity_map.txt"
 
-type figiCodeToSecurityID map[string][]string
+type figiCodeToSecurityIDs map[string][]string
 type securityIDtoRawFinancialInstruments map[string][]rawFinancialInstrument
 
 type s3Config struct {
@@ -179,7 +180,7 @@ func fetchSecurities(r io.Reader) securityIDtoRawFinancialInstruments {
 		if record[8] == "EQ" && securityID != "" {
 			equity := rawFinancialInstrument{
 				securityID:      securityID,
-				orgID:           record[5],
+				orgID:           doubleMD5Hash(record[5]),
 				inceptionDate:   record[10],
 				terminationDate: record[11],
 				fiType:          record[8],
@@ -191,7 +192,14 @@ func fetchSecurities(r io.Reader) securityIDtoRawFinancialInstruments {
 	return rawFIs
 }
 
-func fetchFIGICodes(r io.Reader) figiCodeToSecurityID {
+//same as in org-transformer
+func doubleMD5Hash(input string) string {
+	h := md5.New()
+	io.WriteString(h, input)
+	return uuid.NewMD5(uuid.UUID{}, h.Sum(nil)).String()
+}
+
+func fetchFIGICodes(r io.Reader) figiCodeToSecurityIDs {
 	figiCodes := make(map[string][]string)
 	scanner := bufio.NewScanner(r)
 	scanner.Scan() // skip first line
