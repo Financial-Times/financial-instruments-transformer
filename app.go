@@ -109,7 +109,7 @@ func main() {
 			}
 			fih.financialInstruments = fis
 
-			infoLogger.Printf("Loading FIs finished in [%v]", time.Now().Sub(start))
+			infoLogger.Printf("Loading FIs finished in [%v]", time.Since(start))
 			infoLogger.Printf("Nr of FIs: [%v]", len(fis))
 
 		}(fih)
@@ -205,7 +205,7 @@ func fetchFIGICodes(r io.Reader) figiCodeToSecurityID {
 func transform(rawFIs map[string][]rawFinancialInstrument, figiCodes map[string][]string) map[string]financialInstrument {
 	fis := make(map[string]financialInstrument)
 	for figi, secIDs := range figiCodes {
-		rawFIsForFIGI := make([]rawFinancialInstrument, 0)
+		var rawFIsForFIGI []rawFinancialInstrument
 		for _, sID := range secIDs {
 			rawFIsForFIGI = append(rawFIsForFIGI, rawFIs[sID]...)
 		}

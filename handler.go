@@ -30,7 +30,10 @@ func (fi *fiHandler) count(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
-	w.Write([]byte(strconv.Itoa(len(fi.financialInstruments))))
+	_, err := w.Write([]byte(strconv.Itoa(len(fi.financialInstruments))))
+	if err != nil {
+		warnLogger.Printf("Could not write /count response: [%v]", err)
+	}
 }
 
 func (fi *fiHandler) ids(w http.ResponseWriter, r *http.Request) {
@@ -42,10 +45,10 @@ func (fi *fiHandler) ids(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	enc := json.NewEncoder(w)
-	for uid, _ := range fi.financialInstruments {
+	for uid := range fi.financialInstruments {
 		err := enc.Encode(id{uid})
 		if err != nil {
-			warnLogger.Println("Could not encode uid: [%s]", uid)
+			warnLogger.Printf("Could not encode uid: [%s]. Err: [%v]", uid, err)
 			continue
 		}
 	}
@@ -78,7 +81,7 @@ func (fi *fiHandler) id(w http.ResponseWriter, r *http.Request) {
 	}
 	err := json.NewEncoder(w).Encode(uppFI)
 	if err != nil {
-		warnLogger.Println("Could not return fi with uuid [%s]. Resource: [%v]. Err: [%v]", id, resource, err)
+		warnLogger.Printf("Could not return fi with uuid [%s]. Resource: [%v]. Err: [%v]", id, resource, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
