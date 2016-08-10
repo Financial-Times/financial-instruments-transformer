@@ -140,6 +140,8 @@ func TestId_FinancialInstrumentsMapIsNil_StatusServiceUnavailable(t *testing.T) 
 	}
 }
 
+// mux package doesn't provide a way to mock path params, therefore we have to set up a test server with a router
+
 func TestId_RequestedFinancialInstrumentDoesNotExist_StatusNotFound(t *testing.T) {
 	fi := fiHandler{
 		map[string]financialInstrument{
