@@ -25,19 +25,19 @@ type alternativeIDs struct {
 	FIGI      string   `json:"figiCode"`
 }
 
-func (fi *fiHandler) count(w http.ResponseWriter, r *http.Request) {
-	if fi.financialInstruments == nil {
+func (s *fiService) count(w http.ResponseWriter, r *http.Request) {
+	if s.financialInstruments == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
-	_, err := w.Write([]byte(strconv.Itoa(len(fi.financialInstruments))))
+	_, err := w.Write([]byte(strconv.Itoa(len(s.financialInstruments))))
 	if err != nil {
 		warnLogger.Printf("Could not write /count response: [%v]", err)
 	}
 }
 
-func (fi *fiHandler) ids(w http.ResponseWriter, r *http.Request) {
-	if fi.financialInstruments == nil {
+func (s *fiService) ids(w http.ResponseWriter, r *http.Request) {
+	if s.financialInstruments == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
@@ -45,7 +45,7 @@ func (fi *fiHandler) ids(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	enc := json.NewEncoder(w)
-	for uid := range fi.financialInstruments {
+	for uid := range s.financialInstruments {
 		err := enc.Encode(id{uid})
 		if err != nil {
 			warnLogger.Printf("Could not encode uid: [%s]. Err: [%v]", uid, err)
@@ -54,8 +54,8 @@ func (fi *fiHandler) ids(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (fi *fiHandler) id(w http.ResponseWriter, r *http.Request) {
-	if fi.financialInstruments == nil {
+func (s *fiService) id(w http.ResponseWriter, r *http.Request) {
+	if s.financialInstruments == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
@@ -63,7 +63,7 @@ func (fi *fiHandler) id(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	id := mux.Vars(r)["id"]
-	resource, present := fi.financialInstruments[id]
+	fi, present := s.financialInstruments[id]
 	if !present {
 		infoLogger.Printf("FI with uuid [%s] does not exist", id)
 		w.WriteHeader(http.StatusNotFound)
@@ -74,14 +74,14 @@ func (fi *fiHandler) id(w http.ResponseWriter, r *http.Request) {
 		PrefLabel: "Equity",
 		AlternativeIDs: alternativeIDs{
 			UUIDs:     []string{id},
-			FactsetID: resource.securityID,
-			FIGI:      resource.figiCode,
+			FactsetID: fi.securityID,
+			FIGI:      fi.figiCode,
 		},
-		IssuedBy: resource.orgID,
+		IssuedBy: fi.orgID,
 	}
 	err := json.NewEncoder(w).Encode(uppFI)
 	if err != nil {
-		warnLogger.Printf("Could not return fi with uuid [%s]. Resource: [%v]. Err: [%v]", id, resource, err)
+		warnLogger.Printf("Could not return fi with uuid [%s]. Resource: [%v]. Err: [%v]", id, fi, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

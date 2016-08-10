@@ -25,7 +25,7 @@ type financialInstrument struct {
 	orgID string
 }
 
-type fiHandler struct {
+type fiService struct {
 	//uuid to financial instrument mapping
 	financialInstruments map[string]financialInstrument
 }
@@ -74,8 +74,8 @@ func main() {
 		}
 		infoLogger.Printf("Config: [bucket: %s] [domain: %s]", s3.bucket, s3.domain)
 
-		fih := &fiHandler{}
-		go func(fih *fiHandler) {
+		s := &fiService{}
+		go func(s *fiService) {
 			infoLogger.Println("Started loading FIs.")
 			start := time.Now()
 			fis, err := loadFIs(s3)
@@ -83,13 +83,13 @@ func main() {
 				errorLogger.Println(err)
 				return
 			}
-			fih.financialInstruments = fis
+			s.financialInstruments = fis
 
 			infoLogger.Printf("Loading FIs finished in [%v]", time.Since(start))
 			infoLogger.Printf("Nr of FIs: [%v]", len(fis))
 
-		}(fih)
-		listen(fih, *port)
+		}(s)
+		listen(s, *port)
 	}
 
 	err := app.Run(os.Args)
@@ -98,14 +98,14 @@ func main() {
 	}
 }
 
-func listen(fih *fiHandler, port int) {
+func listen(s *fiService, port int) {
 	infoLogger.Println("Listening on port:", port)
 	r := mux.NewRouter()
-	r.HandleFunc("/transformers/financialinstruments/__count", fih.count).Methods("GET")
-	r.HandleFunc("/transformers/financialinstruments/__ids", fih.ids).Methods("GET")
-	r.HandleFunc("/transformers/financialinstruments/{id}", fih.id).Methods("GET")
-	r.HandleFunc("/__health", fih.health()).Methods("GET")
-	r.HandleFunc("/__gtg", fih.gtg).Methods("GET")
+	r.HandleFunc("/transformers/financialinstruments/__count", s.count).Methods("GET")
+	r.HandleFunc("/transformers/financialinstruments/__ids", s.ids).Methods("GET")
+	r.HandleFunc("/transformers/financialinstruments/{id}", s.id).Methods("GET")
+	r.HandleFunc("/__health", s.health()).Methods("GET")
+	r.HandleFunc("/__gtg", s.gtg).Methods("GET")
 	err := http.ListenAndServe(":"+strconv.Itoa(port), r)
 	if err != nil {
 		errorLogger.Println(err)

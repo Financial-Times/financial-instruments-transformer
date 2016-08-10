@@ -6,12 +6,12 @@ import (
 	"github.com/Financial-Times/go-fthealth"
 )
 
-func (fih *fiHandler) health() func(w http.ResponseWriter, r *http.Request) {
+func (s *fiService) health() func(w http.ResponseWriter, r *http.Request) {
 	return fthealth.Handler("FinancialInstrumentsTransformer", "Financial Instrument Transformer healthcheck")
 }
 
-func (fih *fiHandler) gtg(w http.ResponseWriter, r *http.Request) {
-	if fih.financialInstruments == nil {
+func (s *fiService) gtg(w http.ResponseWriter, r *http.Request) {
+	if s.financialInstruments == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
