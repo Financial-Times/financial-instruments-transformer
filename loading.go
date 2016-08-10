@@ -102,7 +102,7 @@ func fetchFIGICodes(r io.Reader) figiCodeToSecurityIDs {
 	return figiCodes
 }
 
-func transform(rawFIs map[string][]rawFinancialInstrument, figiCodes map[string][]string) map[string]financialInstrument {
+func transform(rawFIs securityIDtoRawFinancialInstruments, figiCodes figiCodeToSecurityIDs) map[string]financialInstrument {
 	fis := make(map[string]financialInstrument)
 	for figi, secIDs := range figiCodes {
 		var rawFIsForFIGI []rawFinancialInstrument

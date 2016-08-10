@@ -52,11 +52,11 @@ func main() {
 		Desc:   "bucket name of factset data",
 		EnvVar: "BUCKET_NAME",
 	})
-	bucketDomain := app.String(cli.StringOpt{
-		Name:   "bucket-domain",
+	s3Domain := app.String(cli.StringOpt{
+		Name:   "s3-domain",
 		Value:  "s3-eu-west-1.amazonaws.com",
-		Desc:   "domain of factset bucket",
-		EnvVar: "BUCKET_DOMAIN",
+		Desc:   "s3 domain of factset bucket",
+		EnvVar: "S3_DOMAIN",
 	})
 	port := app.Int(cli.IntOpt{
 		Name:   "port",
@@ -70,7 +70,7 @@ func main() {
 			accKey:    *awsAccessKey,
 			secretKey: *awsSecretKey,
 			bucket:    *bucketName,
-			domain:    *bucketDomain,
+			domain:    *s3Domain,
 		}
 		infoLogger.Printf("Config: [bucket: %s] [domain: %s]", s3.bucket, s3.domain)
 
