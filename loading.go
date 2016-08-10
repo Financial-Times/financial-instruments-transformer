@@ -72,7 +72,7 @@ func fetchSecurities(r io.Reader) securityIDtoRawFinancialInstruments {
 		if record[8] == "EQ" && securityID != "" {
 			equity := rawFinancialInstrument{
 				securityID:      securityID,
-				orgID:           doubleMD5Hash(record[5]),
+				orgID:           record[5],
 				inceptionDate:   record[10],
 				terminationDate: record[11],
 				fiType:          record[8],
@@ -116,7 +116,7 @@ func transform(rawFIs map[string][]rawFinancialInstrument, figiCodes map[string]
 				uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
 				fis[uid] = financialInstrument{
 					figiCode:   figi,
-					orgID:      r.orgID,
+					orgID:      doubleMD5Hash(r.orgID),
 					securityID: r.securityID,
 				}
 			}
