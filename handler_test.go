@@ -36,11 +36,11 @@ func TestCount_FinancialInstrumentsMapIsNotNil_OkStatusCodeAndResponseBodyShowsC
 			count: "0",
 		},
 		{
-			fiMap: map[string]financialInstrument{"foo": financialInstrument{}},
+			fiMap: map[string]financialInstrument{"foo": {}},
 			count: "1",
 		},
 		{
-			fiMap: map[string]financialInstrument{"foo": financialInstrument{}, "bar": financialInstrument{}},
+			fiMap: map[string]financialInstrument{"foo": {}, "bar": {}},
 			count: "2",
 		},
 	}
@@ -51,7 +51,7 @@ func TestCount_FinancialInstrumentsMapIsNotNil_OkStatusCodeAndResponseBodyShowsC
 	}
 
 	for _, tc := range testCases {
-		fi := fiService{tc.fiMap}
+		fi := fiService{financialInstruments: tc.fiMap}
 		w := httptest.NewRecorder()
 		fi.count(w, req)
 		if w.Code != 200 {
@@ -91,11 +91,11 @@ func TestIds_FinancialInstrumentsMapIsNotNil_IdsInStreamingJsonFormatAreReturned
 			expected: []string{""},
 		},
 		{
-			fiMap:    map[string]financialInstrument{"foo": financialInstrument{}},
+			fiMap:    map[string]financialInstrument{"foo": {}},
 			expected: []string{`{"id":"foo"}` + "\n"},
 		},
 		{
-			fiMap: map[string]financialInstrument{"foo": financialInstrument{}, "bar": financialInstrument{}},
+			fiMap: map[string]financialInstrument{"foo": {}, "bar": {}},
 			//map order is random, hence the multiple valid responses
 			expected: []string{
 				`{"id":"foo"}` + "\n" + `{"id":"bar"}` + "\n",
@@ -110,7 +110,7 @@ func TestIds_FinancialInstrumentsMapIsNotNil_IdsInStreamingJsonFormatAreReturned
 	}
 
 	for _, tc := range testCases {
-		fi := fiService{tc.fiMap}
+		fi := fiService{financialInstruments: tc.fiMap}
 		w := httptest.NewRecorder()
 		fi.ids(w, req)
 		if w.Code != 200 {
@@ -144,8 +144,8 @@ func TestId_FinancialInstrumentsMapIsNil_StatusServiceUnavailable(t *testing.T) 
 
 func TestId_RequestedFinancialInstrumentDoesNotExist_StatusNotFound(t *testing.T) {
 	s := fiService{
-		map[string]financialInstrument{
-			"foo": financialInstrument{},
+		financialInstruments: map[string]financialInstrument{
+			"foo": {},
 		},
 	}
 	r := mux.NewRouter()
@@ -165,11 +165,12 @@ func TestId_RequestedFinancialInstrumentDoesNotExist_StatusNotFound(t *testing.T
 
 func TestId_FinancialInstrumentExists_OkStatusAndCorrectFIReturned(t *testing.T) {
 	s := fiService{
-		map[string]financialInstrument{
-			"foo": financialInstrument{
-				figiCode:   "BBG01234",
-				securityID: "TVKI-123",
-				orgID:      "012AF-E",
+		financialInstruments: map[string]financialInstrument{
+			"foo": {
+				figiCode:     "BBG01234",
+				securityID:   "TVKI-123",
+				orgID:        "012AF-E",
+				securityName: "LIG SPECIAL PURPOSE ACQ 2ND CO  ORD",
 			},
 		},
 	}
@@ -190,7 +191,7 @@ func TestId_FinancialInstrumentExists_OkStatusAndCorrectFIReturned(t *testing.T)
 	if err != nil {
 		t.Fatalf("Failure: [%v]", err)
 	}
-	expected := `{"uuid":"foo","prefLabel":"Equity","alternativeIdentifiers":{"uuids":["foo"],"factsetIdentifier":"TVKI-123","figiCode":"BBG01234"},"issuedBy":"012AF-E"}` + "\n"
+	expected := `{"uuid":"foo","prefLabel":"LIG SPECIAL PURPOSE ACQ 2ND CO  ORD","alternativeIdentifiers":{"uuids":["foo"],"factsetIdentifier":"TVKI-123","figiCode":"BBG01234"},"issuedBy":"012AF-E"}` + "\n"
 	actual := string(rBody)
 
 	if actual != expected {

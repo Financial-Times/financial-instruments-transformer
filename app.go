@@ -22,7 +22,8 @@ type financialInstrument struct {
 	figiCode   string
 	securityID string
 	//UPP UUID
-	orgID string
+	orgID        string
+	securityName string
 }
 
 type fiService struct {

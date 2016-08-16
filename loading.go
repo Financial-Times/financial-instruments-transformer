@@ -24,6 +24,8 @@ type rawFinancialInstrument struct {
 	orgID string
 	//ISSUE_TYPE
 	fiType string
+	//SECURITY_NAME
+	securityName string
 
 	inceptionDate   string
 	terminationDate string
@@ -76,6 +78,7 @@ func fetchSecurities(r io.Reader) securityIDtoRawFinancialInstruments {
 				inceptionDate:   record[10],
 				terminationDate: record[11],
 				fiType:          record[8],
+				securityName:    record[6],
 			}
 			rawFIs[securityID] = append(rawFIs[securityID], equity)
 		}
@@ -115,9 +118,10 @@ func transform(rawFIs securityIDtoRawFinancialInstruments, figiCodes figiCodeToS
 				count++
 				uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
 				fis[uid] = financialInstrument{
-					figiCode:   figi,
-					orgID:      doubleMD5Hash(r.orgID),
-					securityID: r.securityID,
+					figiCode:     figi,
+					orgID:        doubleMD5Hash(r.orgID),
+					securityID:   r.securityID,
+					securityName: r.securityName,
 				}
 			}
 		}

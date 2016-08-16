@@ -97,6 +97,7 @@ func TestFetchSecurities_OneEQ_RawFIModelBuiltCorrectly(t *testing.T) {
 	fiType := "EQ"
 	inceptionDate := "2013-11-21"
 	terminationDate := ""
+	securityName := "LIG SPECIAL PURPOSE ACQ 2ND CO  ORD"
 	fis := fetchSecurities(strings.NewReader(securities))
 	fi, present := fis[secID]
 	if !present {
@@ -108,8 +109,9 @@ func TestFetchSecurities_OneEQ_RawFIModelBuiltCorrectly(t *testing.T) {
 		eq.orgID != orgID ||
 		eq.fiType != fiType ||
 		eq.inceptionDate != inceptionDate ||
-		eq.terminationDate != terminationDate {
-		t.Errorf("Expected secID=[%s], orgID=[%s], fiType=[%s], inceptionDate=[%s], terminationDate=[%s].\nFound: [%v]", secID, orgID, fiType, terminationDate, inceptionDate, fi)
+		eq.terminationDate != terminationDate ||
+		eq.securityName != securityName {
+		t.Errorf("Expected secID=[%s], orgID=[%s], fiType=[%s], inceptionDate=[%s], terminationDate=[%s], securityName=[%s].\nFound: [%v]", secID, orgID, fiType, inceptionDate, terminationDate, securityName, fi)
 	}
 }
 
@@ -173,6 +175,7 @@ func TestTransform_OneEntryInBothMappings_TransformedFIIsCorrect(t *testing.T) {
 				orgID:           "0F03DX-E",
 				inceptionDate:   "1995-03-12",
 				terminationDate: "",
+				securityName:    "LIG SPECIAL PURPOSE ACQ 2ND CO  ORD",
 			}}}
 	figis := map[string][]string{
 		"BBG007HW10F7": []string{"T621V4-S-KR"},
@@ -181,6 +184,7 @@ func TestTransform_OneEntryInBothMappings_TransformedFIIsCorrect(t *testing.T) {
 	expectedSecID := "T621V4-S-KR"
 	expectedOrgID := "5a9c7643-31e4-3bad-b6ba-a7676f43da9f"
 	expectedFigiCode := "BBG007HW10F7"
+	expectedSecurityName := "LIG SPECIAL PURPOSE ACQ 2ND CO  ORD"
 
 	fis := transform(rawFIs, figis)
 
@@ -196,6 +200,10 @@ func TestTransform_OneEntryInBothMappings_TransformedFIIsCorrect(t *testing.T) {
 	}
 	if fi.figiCode != expectedFigiCode {
 		t.Errorf("Expected FIGI [%s]. Found: [%s]", expectedFigiCode, fi.figiCode)
+	}
+
+	if fi.securityName != expectedSecurityName {
+		t.Errorf("Expected security name [%s]. Found: [%s]", expectedSecurityName, fi.securityName)
 	}
 }
 

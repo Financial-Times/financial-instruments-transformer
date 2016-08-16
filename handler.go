@@ -46,7 +46,7 @@ func (s *fiService) ids(w http.ResponseWriter, r *http.Request) {
 
 	enc := json.NewEncoder(w)
 	for uid := range s.financialInstruments {
-		err := enc.Encode(id{uid})
+		err := enc.Encode(id{ID: uid})
 		if err != nil {
 			warnLogger.Printf("Could not encode uid: [%s]. Err: [%v]", uid, err)
 			continue
@@ -71,7 +71,7 @@ func (s *fiService) id(w http.ResponseWriter, r *http.Request) {
 	}
 	uppFI := uppFI{
 		UUID:      id,
-		PrefLabel: "Equity",
+		PrefLabel: fi.securityName,
 		AlternativeIDs: alternativeIDs{
 			UUIDs:     []string{id},
 			FactsetID: fi.securityID,
