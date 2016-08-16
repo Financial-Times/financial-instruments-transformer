@@ -2,6 +2,7 @@ Financial Instruments transformer
 =================================
 
 [![Circle CI](https://circleci.com/gh/Financial-Times/financial-instruments-transformer/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/financial-instruments-transformer/tree/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/financial-instruments-transformer)](https://goreportcard.com/report/github.com/Financial-Times/financial-instruments-transformer)
 
 Transforms factset security data files into Financial Instruments
 
