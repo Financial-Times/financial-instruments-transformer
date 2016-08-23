@@ -1,35 +1,13 @@
 package main
 
 import (
+	"github.com/gorilla/mux"
+	"github.com/jawher/mow.cli"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"strconv"
-	"time"
-
-	"github.com/gorilla/mux"
-	"github.com/jawher/mow.cli"
 )
-
-type s3Config struct {
-	accKey    string
-	secretKey string
-	bucket    string
-	domain    string
-}
-
-type financialInstrument struct {
-	figiCode   string
-	securityID string
-	//UPP UUID
-	orgID        string
-	securityName string
-}
-
-type fiService struct {
-	//uuid to financial instrument mapping
-	financialInstruments map[string]financialInstrument
-}
 
 func init() {
 	initLogs(os.Stdout, os.Stdout, os.Stderr)
@@ -75,22 +53,23 @@ func main() {
 		}
 		infoLogger.Printf("Config: [bucket: %s] [domain: %s]", s3.bucket, s3.domain)
 
-		s := &fiService{}
-		go func(s *fiService) {
-			infoLogger.Println("Started loading FIs.")
-			start := time.Now()
-			fis, err := loadFIs(s3)
-			if err != nil {
-				errorLogger.Println(err)
-				return
-			}
-			s.financialInstruments = fis
+		s3Loader, err := news3Loader(s3)
+		if err != nil {
+			errorLogger.Printf("[%v]", err)
+		}
 
-			infoLogger.Printf("Loading FIs finished in [%v]", time.Since(start))
-			infoLogger.Printf("Nr of FIs: [%v]", len(fis))
+		fiParser := &fiParserImpl{}
+		fit := &fiTransformerImpl{
+			loader: &s3Loader,
+			parser: fiParser,
+		}
+		fis := &fiServiceImpl{}
+		go func(fit fiTransformer) {
+			fis.Init(fit)
+		}(fit)
 
-		}(s)
-		listen(s, *port)
+		httpHandler := &httpHandler{fiService: fis}
+		listen(httpHandler, *port)
 	}
 
 	err := app.Run(os.Args)
@@ -99,14 +78,14 @@ func main() {
 	}
 }
 
-func listen(s *fiService, port int) {
+func listen(h *httpHandler, port int) {
 	infoLogger.Println("Listening on port:", port)
 	r := mux.NewRouter()
-	r.HandleFunc("/transformers/financialinstruments/__count", s.count).Methods("GET")
-	r.HandleFunc("/transformers/financialinstruments/__ids", s.ids).Methods("GET")
-	r.HandleFunc("/transformers/financialinstruments/{id}", s.id).Methods("GET")
-	r.HandleFunc("/__health", s.health()).Methods("GET")
-	r.HandleFunc("/__gtg", s.gtg).Methods("GET")
+	r.HandleFunc("/transformers/financialinstruments/__count", h.Count).Methods("GET")
+	r.HandleFunc("/transformers/financialinstruments/__ids", h.IDs).Methods("GET")
+	r.HandleFunc("/transformers/financialinstruments/{id}", h.Read).Methods("GET")
+	r.HandleFunc("/__health", h.health()).Methods("GET")
+	r.HandleFunc("/__gtg", h.gtg()).Methods("GET")
 	err := http.ListenAndServe(":"+strconv.Itoa(port), r)
 	if err != nil {
 		errorLogger.Println(err)

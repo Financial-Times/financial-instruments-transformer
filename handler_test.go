@@ -10,7 +10,8 @@ import (
 )
 
 func TestCount_FinancialInstrumentsMapIsNil_ServiceUnavailableStatusCode(t *testing.T) {
-	s := fiService{}
+	fis := &fiServiceImpl{}
+	h := httpHandler{fiService: fis}
 
 	req, err := http.NewRequest("GET", "http://fiTransformer/__count", nil)
 	if err != nil {
@@ -19,7 +20,7 @@ func TestCount_FinancialInstrumentsMapIsNil_ServiceUnavailableStatusCode(t *test
 
 	w := httptest.NewRecorder()
 
-	s.count(w, req)
+	h.Count(w, req)
 
 	if w.Code != 503 {
 		t.Errorf("Expected: [%d]. Actual: [%d]", 503, w.Code)
@@ -51,9 +52,10 @@ func TestCount_FinancialInstrumentsMapIsNotNil_OkStatusCodeAndResponseBodyShowsC
 	}
 
 	for _, tc := range testCases {
-		fi := fiService{financialInstruments: tc.fiMap}
+		fi := &fiServiceImpl{financialInstruments: tc.fiMap}
+		h := httpHandler{fiService: fi}
 		w := httptest.NewRecorder()
-		fi.count(w, req)
+		h.Count(w, req)
 		if w.Code != 200 {
 			t.Errorf("Expected statusCode [%d]. Actual: [%d]", 200, w.Code)
 		}
@@ -65,7 +67,8 @@ func TestCount_FinancialInstrumentsMapIsNotNil_OkStatusCodeAndResponseBodyShowsC
 }
 
 func TestIds_FinancialInstrumentsMapIsNil_ServiceUnavailableStatusCode(t *testing.T) {
-	s := fiService{}
+	fis := &fiServiceImpl{}
+	h := httpHandler{fiService: fis}
 
 	req, err := http.NewRequest("GET", "http://fiTransformer/__ids", nil)
 	if err != nil {
@@ -74,7 +77,7 @@ func TestIds_FinancialInstrumentsMapIsNil_ServiceUnavailableStatusCode(t *testin
 
 	w := httptest.NewRecorder()
 
-	s.ids(w, req)
+	h.IDs(w, req)
 
 	if w.Code != 503 {
 		t.Errorf("Expected: [%d]. Actual: [%d]", 503, w.Code)
@@ -110,9 +113,10 @@ func TestIds_FinancialInstrumentsMapIsNotNil_IdsInStreamingJsonFormatAreReturned
 	}
 
 	for _, tc := range testCases {
-		fi := fiService{financialInstruments: tc.fiMap}
+		fi := &fiServiceImpl{financialInstruments: tc.fiMap}
+		h := httpHandler{fiService: fi}
 		w := httptest.NewRecorder()
-		fi.ids(w, req)
+		h.IDs(w, req)
 		if w.Code != 200 {
 			t.Errorf("Expected statusCode [%d]. Actual: [%d]", 200, w.Code)
 		}
@@ -123,8 +127,9 @@ func TestIds_FinancialInstrumentsMapIsNotNil_IdsInStreamingJsonFormatAreReturned
 	}
 }
 
-func TestId_FinancialInstrumentsMapIsNil_StatusServiceUnavailable(t *testing.T) {
-	s := fiService{}
+func TestRead_FinancialInstrumentsMapIsNil_StatusServiceUnavailable(t *testing.T) {
+	fis := &fiServiceImpl{}
+	h := httpHandler{fiService: fis}
 
 	req, err := http.NewRequest("GET", "http://fiTransformer/{id}", nil)
 	if err != nil {
@@ -133,7 +138,7 @@ func TestId_FinancialInstrumentsMapIsNil_StatusServiceUnavailable(t *testing.T) 
 
 	w := httptest.NewRecorder()
 
-	s.id(w, req)
+	h.Read(w, req)
 
 	if w.Code != 503 {
 		t.Errorf("Expected: [%d]. Actual: [%d]", 503, w.Code)
@@ -143,13 +148,15 @@ func TestId_FinancialInstrumentsMapIsNil_StatusServiceUnavailable(t *testing.T) 
 // mux package doesn't provide a way to mock path params, therefore we have to set up a test server with a router
 
 func TestId_RequestedFinancialInstrumentDoesNotExist_StatusNotFound(t *testing.T) {
-	s := fiService{
+	s := &fiServiceImpl{
 		financialInstruments: map[string]financialInstrument{
 			"foo": {},
 		},
 	}
+	h := httpHandler{fiService: s}
+
 	r := mux.NewRouter()
-	r.HandleFunc("/{id}", s.id)
+	r.HandleFunc("/{id}", h.Read)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -164,7 +171,7 @@ func TestId_RequestedFinancialInstrumentDoesNotExist_StatusNotFound(t *testing.T
 }
 
 func TestId_FinancialInstrumentExists_OkStatusAndCorrectFIReturned(t *testing.T) {
-	s := fiService{
+	s := &fiServiceImpl{
 		financialInstruments: map[string]financialInstrument{
 			"foo": {
 				figiCode:     "BBG01234",
@@ -175,7 +182,9 @@ func TestId_FinancialInstrumentExists_OkStatusAndCorrectFIReturned(t *testing.T)
 		},
 	}
 	r := mux.NewRouter()
-	r.HandleFunc("/{id}", s.id)
+	h := httpHandler{fiService: s}
+
+	r.HandleFunc("/{id}", h.Read)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()

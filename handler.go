@@ -25,19 +25,28 @@ type alternativeIDs struct {
 	FIGI      string   `json:"figiCode"`
 }
 
-func (s *fiService) count(w http.ResponseWriter, r *http.Request) {
-	if s.financialInstruments == nil {
+type httpHandler struct {
+	fiService fiService
+}
+
+func (h *httpHandler) Count(w http.ResponseWriter, r *http.Request) {
+	s := h.fiService
+
+	if s.IsInitialised() == false {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
-	_, err := w.Write([]byte(strconv.Itoa(len(s.financialInstruments))))
+
+	_, err := w.Write([]byte(strconv.Itoa(s.Count())))
 	if err != nil {
 		warnLogger.Printf("Could not write /count response: [%v]", err)
 	}
 }
 
-func (s *fiService) ids(w http.ResponseWriter, r *http.Request) {
-	if s.financialInstruments == nil {
+func (h *httpHandler) IDs(w http.ResponseWriter, r *http.Request) {
+	s := h.fiService
+
+	if s.IsInitialised() == false {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
@@ -45,7 +54,7 @@ func (s *fiService) ids(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	enc := json.NewEncoder(w)
-	for uid := range s.financialInstruments {
+	for _, uid := range s.IDs() {
 		err := enc.Encode(id{ID: uid})
 		if err != nil {
 			warnLogger.Printf("Could not encode uid: [%s]. Err: [%v]", uid, err)
@@ -54,8 +63,10 @@ func (s *fiService) ids(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *fiService) id(w http.ResponseWriter, r *http.Request) {
-	if s.financialInstruments == nil {
+func (h *httpHandler) Read(w http.ResponseWriter, r *http.Request) {
+	s := h.fiService
+
+	if s.IsInitialised() == false {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
@@ -63,7 +74,8 @@ func (s *fiService) id(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	id := mux.Vars(r)["id"]
-	fi, present := s.financialInstruments[id]
+	fi, present := s.Read(id)
+
 	if !present {
 		infoLogger.Printf("FI with uuid [%s] does not exist", id)
 		w.WriteHeader(http.StatusNotFound)

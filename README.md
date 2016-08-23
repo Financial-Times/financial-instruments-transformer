@@ -1,4 +1,4 @@
-Financial Instruments transformer
+Financial Instruments Transformer
 =================================
 
 [![Circle CI](https://circleci.com/gh/Financial-Times/financial-instruments-transformer/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/financial-instruments-transformer/tree/master)
@@ -6,7 +6,7 @@ Financial Instruments transformer
 
 Transforms factset security data files into Financial Instruments.
 
-This API is not public accessible.
+This API is not publicly accessible.
 
 How to Build & Run the binary
 -----------------------------
@@ -32,14 +32,14 @@ Endpoints
 `curl -H "X-Request-Id: 123" localhost:8080/transformers/financialinstruments/11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b`
 
 Successful response:
-    - status code: 200
-    - body: `{"uuid":"11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b","prefLabel":"SAGA COMMUNICATIONS INC  CL A","alternativeIdentifiers":{"uuids":["11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b"],"factsetIdentifier":"DCZBY8-S-US","figiCode":"BBG000F9R281"},"issuedBy":"3aa12e48-8835-30d2-9ed9-606447ebd36a"}`
+    * status code: 200
+    * body: `{"uuid":"11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b","prefLabel":"SAGA COMMUNICATIONS INC  CL A","alternativeIdentifiers":{"uuids":["11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b"],"factsetIdentifier":"DCZBY8-S-US","figiCode":"BBG000F9R281"},"issuedBy":"3aa12e48-8835-30d2-9ed9-606447ebd36a"}`
     
 2. /transformers/financialinstruments/__ids: reads the IDs of the financial instruments.
 
 Successful response:
-    - status code: 200
-    - body: `{"id":"0c6842aa-e858-3053-b034-687e6db9578a"}\n{"id":"3bb726ff-7bf3-3303-8b09-caa226cdd208"}\n...`
+    * status code: 200
+    * body: `{"id":"0c6842aa-e858-3053-b034-687e6db9578a"}\n{"id":"3bb726ff-7bf3-3303-8b09-caa226cdd208"}\n...`
     
 Admin endpoints
 ---------------
