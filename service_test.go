@@ -163,12 +163,13 @@ func TestFiServiceImpl_IDs(t *testing.T) {
 		},
 	}
 
-	expected := []string{"7d4fdd8b-3bad-3766-af4a-b26a7bc56f10", "24d7f133-d30b-394f-970c-5a5e3ed66061"}
+	expected1 := []string{"7d4fdd8b-3bad-3766-af4a-b26a7bc56f10", "24d7f133-d30b-394f-970c-5a5e3ed66061"}
+	expected2:= []string{"24d7f133-d30b-394f-970c-5a5e3ed66061", "7d4fdd8b-3bad-3766-af4a-b26a7bc56f10"}
 
 	IDs := fis.IDs()
 
-	if !reflect.DeepEqual(IDs, expected) {
-		t.Errorf("Expected: [%v]. Actual: [%v]", expected, IDs)
+	if !reflect.DeepEqual(IDs, expected1) && !reflect.DeepEqual(IDs, expected2){
+		t.Errorf("Expected: [%v] or [%v]. Actual: [%v]", expected1, expected2,IDs)
 	}
 }
 
