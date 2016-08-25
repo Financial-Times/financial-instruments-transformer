@@ -15,7 +15,7 @@ type fiParserImpl struct {
 }
 
 func (fip *fiParserImpl) ParseFis(r io.ReadCloser) (map[string][]rawFinancialInstrument, error) {
-	rawFIs := FetchSecurities(r)
+	rawFIs := fetchSecurities(r)
 	err := r.Close()
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func (fip *fiParserImpl) ParseFis(r io.ReadCloser) (map[string][]rawFinancialIns
 	return rawFIs, nil
 }
 
-func FetchSecurities(r io.Reader) map[string][]rawFinancialInstrument {
+func fetchSecurities(r io.Reader) map[string][]rawFinancialInstrument {
 	rawFIs := make(map[string][]rawFinancialInstrument)
 	scanner := bufio.NewScanner(r)
 	scanner.Scan() // skip the first line (contains the column names)
@@ -49,7 +49,7 @@ func FetchSecurities(r io.Reader) map[string][]rawFinancialInstrument {
 }
 
 func (fip *fiParserImpl) ParseFigiCodes(r io.ReadCloser) (map[string][]string, error) {
-	figiCodes := FetchFIGICodes(r)
+	figiCodes := fetchFIGICodes(r)
 	err := r.Close()
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (fip *fiParserImpl) ParseFigiCodes(r io.ReadCloser) (map[string][]string, e
 	return figiCodes, nil
 }
 
-func FetchFIGICodes(r io.Reader) map[string][]string {
+func fetchFIGICodes(r io.Reader) map[string][]string {
 	figiCodes := make(map[string][]string)
 	scanner := bufio.NewScanner(r)
 	scanner.Scan() // skip first line

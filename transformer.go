@@ -25,7 +25,7 @@ type fiMappings struct {
 }
 
 //same as in org-transformer
-func DoubleMD5Hash(input string) string {
+func doubleMD5Hash(input string) string {
 	h := md5.New()
 	io.WriteString(h, input)
 	return uuid.NewMD5(uuid.UUID{}, h.Sum(nil)).String()
@@ -54,7 +54,7 @@ func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 				uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
 				fis[uid] = financialInstrument{
 					figiCode:     figi,
-					orgID:        DoubleMD5Hash(r.orgID),
+					orgID:        doubleMD5Hash(r.orgID),
 					securityID:   r.securityID,
 					securityName: r.securityName,
 				}

@@ -20,10 +20,10 @@ func news3Loader(c s3Config) (s3Loader, error) {
 		return s3Loader{}, err
 	}
 	s3 := s3gof3r.New(c.domain, k)
-	s3Loader := s3Loader{
+	loader := s3Loader{
 		bucket: s3.Bucket(c.bucket),
 	}
-	return s3Loader, nil
+	return loader, nil
 }
 
 func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {

@@ -81,7 +81,7 @@ func (h *httpHandler) Read(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	uppFI := uppFI{
+	uppFi := uppFI{
 		UUID:      id,
 		PrefLabel: fi.securityName,
 		AlternativeIDs: alternativeIDs{
@@ -91,7 +91,7 @@ func (h *httpHandler) Read(w http.ResponseWriter, r *http.Request) {
 		},
 		IssuedBy: fi.orgID,
 	}
-	err := json.NewEncoder(w).Encode(uppFI)
+	err := json.NewEncoder(w).Encode(uppFi)
 	if err != nil {
 		warnLogger.Printf("Could not return fi with uuid [%s]. Resource: [%v]. Err: [%v]", id, fi, err)
 		w.WriteHeader(http.StatusInternalServerError)

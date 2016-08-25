@@ -209,7 +209,7 @@ func TestTransform_DifferentSecIdSameFigiAndEntityId(t *testing.T) {
 		parser: pm,
 	}
 
-	expectedIds := []string{
+	expectedIDs := []string{
 		"a135ff6a-a466-32ba-a48c-ea280cf9df6f",
 		"6372c1b4-0dee-3d99-b9a0-bef34d97d6c8",
 	}
@@ -220,10 +220,10 @@ func TestTransform_DifferentSecIdSameFigiAndEntityId(t *testing.T) {
 		t.Errorf("Expected two financial instruments but found [%d]", len(fis))
 	}
 
-	for _, expectedId := range expectedIds {
-		_, present := fis[expectedId]
+	for _, expectedID := range expectedIDs {
+		_, present := fis[expectedID]
 		if !present {
-			t.Errorf("Expected to found financial instrument with uuid: [%s]", expectedId)
+			t.Errorf("Expected to found financial instrument with uuid: [%s]", expectedID)
 		}
 	}
 }
@@ -263,7 +263,7 @@ func TestTransform_SameFigiSameSecIDSameEntityNoTerminationDate(t *testing.T) {
 		parser: pm,
 	}
 
-	expectedId := "03a708f3-88ae-3c8a-a297-efe9fa0ad666"
+	expectedID := "03a708f3-88ae-3c8a-a297-efe9fa0ad666"
 
 	fis := fit.Transform()
 
@@ -271,8 +271,8 @@ func TestTransform_SameFigiSameSecIDSameEntityNoTerminationDate(t *testing.T) {
 		t.Errorf("Expecting one financial instrument but found [%d]", len(fis))
 	}
 
-	if _, present := fis[expectedId]; !present {
-		t.Errorf("Expected to found financial instrument with uuid: [%s]", expectedId)
+	if _, present := fis[expectedID]; !present {
+		t.Errorf("Expected to found financial instrument with uuid: [%s]", expectedID)
 	}
 }
 
@@ -307,7 +307,7 @@ func TestTransform_SameFigiDifferentSecIDAndOrgIDNoTerminationDate(t *testing.T)
 		parser: pm,
 	}
 
-	expectedIds := []string{
+	expectedIDs := []string{
 		"24d7f133-d30b-394f-970c-5a5e3ed66061",
 		"f9ca6c8d-1b02-3492-ae76-5ef2231e6ae7",
 	}
@@ -318,10 +318,10 @@ func TestTransform_SameFigiDifferentSecIDAndOrgIDNoTerminationDate(t *testing.T)
 		t.Errorf("Expecting two financial instruments but found [%d]", len(fis))
 	}
 
-	for _, expectedId := range expectedIds {
-		_, present := fis[expectedId]
+	for _, expectedID := range expectedIDs {
+		_, present := fis[expectedID]
 		if !present {
-			t.Errorf("Expected to found financial instrument with uuid: [%s]", expectedId)
+			t.Errorf("Expected to found financial instrument with uuid: [%s]", expectedID)
 		}
 	}
 }

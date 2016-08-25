@@ -29,7 +29,7 @@ func TestFetchSecurities_FirstLineIsAnEquity_FirstLineIsIgnored(t *testing.T) {
 	securities :=
 		`"00000CY56"|"US00000CY568"|""|""|"D36R2K-S"|"0D1MLR-E"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"EQ"|""|1991-01-01||""|"USD"|"US65"||`
 
-	fis := FetchSecurities(strings.NewReader(securities))
+	fis := fetchSecurities(strings.NewReader(securities))
 	if len(fis) != 0 {
 		t.Error("Expected first line to be skipped!")
 	}
@@ -40,7 +40,7 @@ func TestFetchSecurities_NoEquity_EmptyMapReturned(t *testing.T) {
 		`"CUSIP"|"ISIN"|"FDS_PRIMARY_SEDOL"|"FDS_PRIMARY_TICKER_SYMBOL"|"FS_PERM_SEC_ID"|"FACTSET_ENTITY_ID"|"SECURITY_NAME"|"ISO_COUNTRY"|"ISSUE_TYPE"|"FDS_PRIMARY_MIC_EXCHANGE_CODE"|"INCEPTION_DATE"|"TERMINATION_DATE"|"CAP_GROUP"|"FDS_PRIMARY_ISO_CURRENCY"|"CIC_CODE"|"COUPON_RATE"|"MATURITY_DATE"
 		"00000CY57"|"US00000CY568"|""|""|"D36R2K-E"|"0D1MLR-F"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"MB"|""|1991-01-01||""|"USD"|"US65"||
 		"00000CY56"|"US00010CY568"|""|""|"D36R4K-S"|"0D1MLR-E"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"MT"|""|1991-01-01||""|"USD"|"US65"||`
-	fis := FetchSecurities(strings.NewReader(securities))
+	fis := fetchSecurities(strings.NewReader(securities))
 	if len(fis) != 0 {
 		t.Errorf("Expected no equity record. Found: [%v]", fis)
 	}
@@ -52,7 +52,7 @@ func TestFetchSecurities_OneEQAndOneMBSecurity_OnlyEquityIsReturned(t *testing.T
 		"00000CY56"|"US00000CY568"|""|""|"D36R2K-E"|"0D1MLR-F"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"EQ"|""|1991-01-01||""|"USD"|"US65"||
 		"00000CY56"|"US00000CY568"|""|""|"D36R2K-S"|"0D1MLR-E"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"MB"|""|1991-01-01||""|"USD"|"US65"||`
 
-	fis := FetchSecurities(strings.NewReader(securities))
+	fis := fetchSecurities(strings.NewReader(securities))
 	if len(fis) != 1 {
 		t.Errorf("Expected one equity record. Found: [%d]", len(fis))
 	}
@@ -72,7 +72,7 @@ func TestFetchSecurities_TwoEQsWithSameSecID_OneEntryWithTwoFIsReturned(t *testi
 		"00000CY56"|"US00000CY568"|""|""|"D36R2K-E"|"0D1MLR-T"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"EQ"|""|1991-01-01||""|"USD"|"US65"||
 		"00000CY56"|"US00000CY568"|""|""|"D36R2K-S"|"0D1MLR-E"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"MB"|""|1991-01-01||""|"USD"|"US65"||`
 
-	fis := FetchSecurities(strings.NewReader(securities))
+	fis := fetchSecurities(strings.NewReader(securities))
 	if len(fis) != 1 {
 		t.Errorf("Expected one equity record. Found: [%d]", len(fis))
 	}
@@ -92,7 +92,7 @@ func TestFetchSecurities_TwoEQsWithDifferentSecID_OneEntryWithTwoFIsReturned(t *
 		"00000CY56"|"US00000CY568"|""|""|"D36R2K-T"|"0D1MLR-T"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"EQ"|""|1991-01-01||""|"USD"|"US65"||
 		"00000CY56"|"US00000CY568"|""|""|"D36R2K-S"|"0D1MLR-E"|"GREENWICH CAP ACCEPTANCE  1991-B B1"|"US"|"MB"|""|1991-01-01||""|"USD"|"US65"||`
 
-	fis := FetchSecurities(strings.NewReader(securities))
+	fis := fetchSecurities(strings.NewReader(securities))
 	if len(fis) != 2 {
 		t.Errorf("Expected one equity record. Found: [%d]", len(fis))
 	}
@@ -117,7 +117,7 @@ func TestFetchSecurities_OneEQ_RawFIModelBuiltCorrectly(t *testing.T) {
 	inceptionDate := "2013-11-21"
 	terminationDate := ""
 	securityName := "LIG SPECIAL PURPOSE ACQ 2ND CO  ORD"
-	fis := FetchSecurities(strings.NewReader(securities))
+	fis := fetchSecurities(strings.NewReader(securities))
 	fi, present := fis[secID]
 	if !present {
 		t.Errorf("Expected to find financial instrument with secID [%s], but does not exist.", secID)
@@ -156,7 +156,7 @@ func TestFetchFIGICodes(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		figis := FetchFIGICodes(strings.NewReader(headerLine + "\n" + tc.figis))
+		figis := fetchFIGICodes(strings.NewReader(headerLine + "\n" + tc.figis))
 		if !reflect.DeepEqual(figis, tc.expected) {
 			t.Errorf("Expected: [%v]. Actual: [%v]", tc.expected, figis)
 		}
@@ -179,7 +179,7 @@ func TestDoubleMD5Hash(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := DoubleMD5Hash(tc.input)
+		actual := doubleMD5Hash(tc.input)
 		if tc.expected != actual {
 			t.Errorf("Expected: [%s]. Actual: [%s]", tc.expected, actual)
 		}
