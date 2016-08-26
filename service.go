@@ -35,8 +35,5 @@ func (fis *fiServiceImpl) Count() int {
 }
 
 func (fis *fiServiceImpl) IsInitialised() bool {
-	if fis.financialInstruments == nil {
-		return false
-	}
-	return true
+	return fis.financialInstruments != nil
 }
