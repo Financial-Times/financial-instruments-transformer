@@ -81,9 +81,9 @@ func main() {
 func listen(h *httpHandler, port int) {
 	infoLogger.Println("Listening on port:", port)
 	r := mux.NewRouter()
-	r.HandleFunc("/transformers/financialinstruments/__count", h.Count).Methods("GET")
-	r.HandleFunc("/transformers/financialinstruments/__ids", h.IDs).Methods("GET")
-	r.HandleFunc("/transformers/financialinstruments/{id}", h.Read).Methods("GET")
+	r.HandleFunc("/transformers/financial-instruments/__count", h.Count).Methods("GET")
+	r.HandleFunc("/transformers/financial-instruments/__ids", h.IDs).Methods("GET")
+	r.HandleFunc("/transformers/financial-instruments/{id}", h.Read).Methods("GET")
 	r.HandleFunc("/__health", h.health()).Methods("GET")
 	r.HandleFunc("/__gtg", h.gtg()).Methods("GET")
 	err := http.ListenAndServe(":"+strconv.Itoa(port), r)
