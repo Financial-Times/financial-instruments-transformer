@@ -33,7 +33,7 @@ func main() {
 	})
 	s3Domain := app.String(cli.StringOpt{
 		Name:   "s3-domain",
-		Value:  "s3-eu-west-1.amazonaws.com",
+		Value:  "s3.amazonaws.com",
 		Desc:   "s3 domain of factset bucket",
 		EnvVar: "S3_DOMAIN",
 	})

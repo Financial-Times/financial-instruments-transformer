@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-const bbgIDs = "edm_bbg_ids.txt"
-const securityEntityMap = "edm_security_entity_map.txt"
+const bbgIDs = "edm_bbg_ids"
+const securityEntityMap = "edm_security_entity_map"
 
 type fiTransformer interface {
 	Transform() map[string]financialInstrument
