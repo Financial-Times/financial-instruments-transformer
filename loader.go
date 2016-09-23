@@ -1,12 +1,12 @@
 package main
 
 import (
-	"io"
 	"github.com/minio/minio-go"
-	"regexp"
-	"time"
 	"github.com/pkg/errors"
+	"io"
+	"regexp"
 	"strings"
+	"time"
 )
 
 type loader interface {

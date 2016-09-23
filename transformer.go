@@ -2,13 +2,15 @@ package main
 
 import (
 	"crypto/md5"
-	"github.com/pborman/uuid"
 	"io"
 	"time"
+
+	"github.com/pborman/uuid"
 )
 
-const bbgIDs = "edm_bbg_ids"
-const securityEntityMap = "edm_security_entity_map"
+const bbgIDs = "sym_bbg"
+const securityEntityMap = "sym_sec_entity"
+const securities = "sym_coverage"
 
 type fiTransformer interface {
 	Transform() map[string]financialInstrument
@@ -22,6 +24,7 @@ type fiTransformerImpl struct {
 type fiMappings struct {
 	figiCodeToSecurityIDs               map[string][]string
 	securityIDtoRawFinancialInstruments map[string][]rawFinancialInstrument
+	securityIDToEntityMapping           map[string]string
 }
 
 //same as in org-transformer
@@ -40,7 +43,7 @@ func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 		errorLogger.Println(err)
 		return map[string]financialInstrument{}
 	}
-
+	//fmt.Println(fiData.securityIDtoRawFinancialInstruments)
 	fis := make(map[string]financialInstrument)
 	for figi, secIDs := range fiData.figiCodeToSecurityIDs {
 		var rawFIsForFIGI []rawFinancialInstrument
@@ -49,16 +52,15 @@ func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 		}
 		count := 0
 		for _, r := range rawFIsForFIGI {
-			if r.terminationDate == "" {
-				count++
-				uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
-				fis[uid] = financialInstrument{
-					figiCode:     figi,
-					orgID:        doubleMD5Hash(r.orgID),
-					securityID:   r.securityID,
-					securityName: r.securityName,
-				}
+			count++
+			uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
+			fis[uid] = financialInstrument{
+				figiCode:     figi,
+				orgID:        doubleMD5Hash(r.orgID),
+				securityID:   r.securityID,
+				securityName: r.securityName,
 			}
+
 		}
 		if count > 1 {
 			warnLogger.Printf("More raw fi mappings with empty termination date for FIGI: [%s]! using the last one [%v]", figi, rawFIsForFIGI)
@@ -73,29 +75,49 @@ func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 }
 
 func getMappings(fit fiTransformerImpl) (fiMappings, error) {
-	fisReader, err := fit.loader.LoadResource(securityEntityMap)
+	fisReader, err := fit.loader.LoadResource(securities)
 	if err != nil {
 		errorLogger.Println(err)
 		return fiMappings{}, err
 	}
+	defer fisReader.Close()
 
 	figiReader, err := fit.loader.LoadResource(bbgIDs)
 	if err != nil {
 		errorLogger.Println(err)
 		return fiMappings{}, err
 	}
+	defer figiReader.Close()
 
-	securities, err := fit.parser.ParseFis(fisReader)
+	secOrgReader, err := fit.loader.LoadResource(securityEntityMap)
+	if err != nil {
+		errorLogger.Println(err)
+		return fiMappings{}, err
+	}
+	defer secOrgReader.Close()
+
+	sec, err := fit.parser.ParseFis(fisReader, secOrgReader)
 	if err != nil {
 		return fiMappings{}, err
 	}
 
-	figis, err := fit.parser.ParseFigiCodes(figiReader)
+	//todo redundant, this file is already loaded, just reset reader
+	lisReader, err := fit.loader.LoadResource(securities)
+	if err != nil {
+		errorLogger.Println(err)
+		return fiMappings{}, err
+	}
+	defer lisReader.Close()
+	listings := fit.parser.ParseListings(lisReader, sec)
+
+
+	figis, err := fit.parser.ParseFigiCodes(figiReader, listings)
 	if err != nil {
 		return fiMappings{}, err
 	}
+
 	return fiMappings{
-		securityIDtoRawFinancialInstruments: securities,
+		securityIDtoRawFinancialInstruments: sec,
 		figiCodeToSecurityIDs:               figis,
 	}, nil
 }

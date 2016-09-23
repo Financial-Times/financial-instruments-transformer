@@ -9,12 +9,11 @@ type financialInstrument struct {
 
 // raw financial instrument model as it comes from Factset
 type rawFinancialInstrument struct {
-	securityID      string //FS_PERM_SEC_ID
-	orgID           string //FACTSET_ENTITY_ID
-	fiType          string //ISSUE_TYPE
-	securityName    string //SECURITY_NAME
-	inceptionDate   string
-	terminationDate string
+	securityID       string
+	orgID            string
+	fiType           string
+	securityName     string
+	primaryListingID string
 }
 
 type s3Config struct {
