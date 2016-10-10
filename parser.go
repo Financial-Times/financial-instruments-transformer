@@ -8,15 +8,15 @@ import (
 )
 
 type fiParser interface {
-	ParseFis(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string][]rawFinancialInstrument, error)
-	ParseListings(r io.ReadCloser, fis map[string][]rawFinancialInstrument) map[string]string
-	ParseFigiCodes(r io.ReadCloser, listings map[string]string) (map[string][]string, error)
+	parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string][]rawFinancialInstrument, error)
+	parseListings(r io.ReadCloser, fis map[string][]rawFinancialInstrument) map[string]string
+	parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string][]string, error)
 }
 
 type fiParserImpl struct {
 }
 
-func (fip *fiParserImpl) ParseFis(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string][]rawFinancialInstrument, error) {
+func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string][]rawFinancialInstrument, error) {
 	infoLogger.Println("Starting security parsing.")
 	rawFIs := make(map[string][]rawFinancialInstrument)
 	scanner := bufio.NewScanner(secReader)
@@ -76,7 +76,7 @@ func (fip *fiParserImpl) ParseFis(secReader io.ReadCloser, secOrgReader io.ReadC
 	return rawFIs, nil
 }
 
-func (fip *fiParserImpl) ParseFigiCodes(r io.ReadCloser, listings map[string]string) (map[string][]string, error) {
+func (fip *fiParserImpl) parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string][]string, error) {
 	infoLogger.Println("Starting FIGI code parsing.")
 	figiCodes := make(map[string][]string)
 	scanner := bufio.NewScanner(r)
@@ -96,7 +96,7 @@ func (fip *fiParserImpl) ParseFigiCodes(r io.ReadCloser, listings map[string]str
 	return figiCodes, nil
 }
 
-func (fip *fiParserImpl) ParseListings(r io.ReadCloser, fis map[string][]rawFinancialInstrument) map[string]string {
+func (fip *fiParserImpl) parseListings(r io.ReadCloser, fis map[string][]rawFinancialInstrument) map[string]string {
 	infoLogger.Println("Starting listings parsing.")
 	listings := map[string]string{}
 	scanner := bufio.NewScanner(r)

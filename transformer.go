@@ -8,7 +8,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-const bbgIDs = "sym_bbg"
+const secToFIGIs = "sym_bbg"
 const securityEntityMap = "sym_sec_entity"
 const securities = "sym_coverage"
 
@@ -75,44 +75,43 @@ func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 }
 
 func getMappings(fit fiTransformerImpl) (fiMappings, error) {
-	fisReader, err := fit.loader.LoadResource(securities)
+	secReader, err := fit.loader.LoadResource(securities)
 	if err != nil {
 		return fiMappings{}, err
 	}
-	defer fisReader.Close()
+	defer secReader.Close()
 
-	secOrgReader, err := fit.loader.LoadResource(securityEntityMap)
+	secToOrgReader, err := fit.loader.LoadResource(securityEntityMap)
 	if err != nil {
 		return fiMappings{}, err
 	}
-	defer secOrgReader.Close()
+	defer secToOrgReader.Close()
 
-	sec, err := fit.parser.ParseFis(fisReader, secOrgReader)
+	fis, err := fit.parser.parseFIs(secReader, secToOrgReader)
 	if err != nil {
 		return fiMappings{}, err
 	}
 
-	//todo redundant, this file is already loaded, just reset reader
 	lisReader, err := fit.loader.LoadResource(securities)
 	if err != nil {
 		return fiMappings{}, err
 	}
 	defer lisReader.Close()
-	listings := fit.parser.ParseListings(lisReader, sec)
+	listings := fit.parser.parseListings(lisReader, fis)
 
-	figiReader, err := fit.loader.LoadResource(bbgIDs)
+	figiReader, err := fit.loader.LoadResource(secToFIGIs)
 	if err != nil {
 		return fiMappings{}, err
 	}
 	defer figiReader.Close()
 
-	figis, err := fit.parser.ParseFigiCodes(figiReader, listings)
+	figis, err := fit.parser.parseFIGICodes(figiReader, listings)
 	if err != nil {
 		return fiMappings{}, err
 	}
 
 	return fiMappings{
-		securityIDtoRawFinancialInstruments: sec,
+		securityIDtoRawFinancialInstruments: fis,
 		figiCodeToSecurityIDs:               figis,
 	}, nil
 }
