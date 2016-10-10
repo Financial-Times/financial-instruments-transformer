@@ -45,7 +45,7 @@ func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {
 		if object.Err != nil {
 			return nil, object.Err
 		}
-		if (!strings.Contains(object.Key, path) || strings.Contains(object.Key, "md5")) {
+		if !strings.Contains(object.Key, path) || strings.Contains(object.Key, "md5") {
 			continue
 		}
 
@@ -65,6 +65,6 @@ func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {
 			latestObj.date = date
 		}
 	}
-	infoLogger.Printf("Reading from object: [%s] for resource [%s]", latestObj.object.Key, path)
+	infoLogger.Printf("Loading object: [%s] for resource [%s]", latestObj.object.Key, path)
 	return s3Client.GetObject(s3Loader.config.bucket, latestObj.object.Key)
 }
