@@ -77,21 +77,12 @@ func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 func getMappings(fit fiTransformerImpl) (fiMappings, error) {
 	fisReader, err := fit.loader.LoadResource(securities)
 	if err != nil {
-		errorLogger.Println(err)
 		return fiMappings{}, err
 	}
 	defer fisReader.Close()
 
-	figiReader, err := fit.loader.LoadResource(bbgIDs)
-	if err != nil {
-		errorLogger.Println(err)
-		return fiMappings{}, err
-	}
-	defer figiReader.Close()
-
 	secOrgReader, err := fit.loader.LoadResource(securityEntityMap)
 	if err != nil {
-		errorLogger.Println(err)
 		return fiMappings{}, err
 	}
 	defer secOrgReader.Close()
@@ -104,12 +95,16 @@ func getMappings(fit fiTransformerImpl) (fiMappings, error) {
 	//todo redundant, this file is already loaded, just reset reader
 	lisReader, err := fit.loader.LoadResource(securities)
 	if err != nil {
-		errorLogger.Println(err)
 		return fiMappings{}, err
 	}
 	defer lisReader.Close()
 	listings := fit.parser.ParseListings(lisReader, sec)
 
+	figiReader, err := fit.loader.LoadResource(bbgIDs)
+	if err != nil {
+		return fiMappings{}, err
+	}
+	defer figiReader.Close()
 
 	figis, err := fit.parser.ParseFigiCodes(figiReader, listings)
 	if err != nil {
