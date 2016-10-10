@@ -32,7 +32,7 @@ type httpHandler struct {
 func (h *httpHandler) Count(w http.ResponseWriter, r *http.Request) {
 	s := h.fiService
 
-	if s.IsInitialised() == false {
+	if !s.IsInitialised() {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
@@ -46,7 +46,7 @@ func (h *httpHandler) Count(w http.ResponseWriter, r *http.Request) {
 func (h *httpHandler) IDs(w http.ResponseWriter, r *http.Request) {
 	s := h.fiService
 
-	if s.IsInitialised() == false {
+	if !s.IsInitialised() {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
@@ -66,7 +66,7 @@ func (h *httpHandler) IDs(w http.ResponseWriter, r *http.Request) {
 func (h *httpHandler) Read(w http.ResponseWriter, r *http.Request) {
 	s := h.fiService
 
-	if s.IsInitialised() == false {
+	if !s.IsInitialised() {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
