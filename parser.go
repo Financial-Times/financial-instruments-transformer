@@ -8,17 +8,17 @@ import (
 )
 
 type fiParser interface {
-	parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string][]rawFinancialInstrument, error)
-	parseListings(r io.ReadCloser, fis map[string][]rawFinancialInstrument) map[string]string
-	parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string][]string, error)
+	parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string]rawFinancialInstrument, error)
+	parseListings(r io.ReadCloser, fis map[string]rawFinancialInstrument) map[string]string
+	parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string]string, error)
 }
 
 type fiParserImpl struct {
 }
 
-func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string][]rawFinancialInstrument, error) {
+func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string]rawFinancialInstrument, error) {
 	infoLogger.Println("Starting security parsing.")
-	rawFIs := make(map[string][]rawFinancialInstrument)
+	rawFIs := make(map[string]rawFinancialInstrument)
 	scanner := bufio.NewScanner(secReader)
 	scanner.Scan() // skip the first line (contains the column names)
 	for scanner.Scan() {
@@ -50,7 +50,7 @@ func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadC
 				securityName:     record[2],
 				primaryListingID: record[4],
 			}
-			rawFIs[securityID] = append(rawFIs[securityID], equity)
+			rawFIs[securityID] = equity
 		}
 	}
 
@@ -66,8 +66,8 @@ func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadC
 		securityID := record[0]
 		orgID := record[1]
 		rawFI, ok := rawFIs[securityID]
-		if ok && len(rawFI) == 1 {
-			rawFI[0].orgID = orgID
+		if ok {
+			rawFI.orgID = orgID
 		}
 	}
 
@@ -76,9 +76,9 @@ func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadC
 	return rawFIs, nil
 }
 
-func (fip *fiParserImpl) parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string][]string, error) {
+func (fip *fiParserImpl) parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string]string, error) {
 	infoLogger.Println("Starting FIGI code parsing.")
-	figiCodes := make(map[string][]string)
+	figiCodes := make(map[string]string)
 	scanner := bufio.NewScanner(r)
 	scanner.Scan() // skip first line
 	for scanner.Scan() {
@@ -88,7 +88,7 @@ func (fip *fiParserImpl) parseFIGICodes(r io.ReadCloser, listings map[string]str
 			continue
 		}
 		if securityID, ok := listings[record[0]]; ok {
-			figiCodes[record[1]] = append(figiCodes[record[1]], securityID)
+			figiCodes[record[1]] = securityID
 		}
 	}
 	infoLogger.Printf("Fetched figi codes. Nr of records: [%d]", len(figiCodes))
@@ -96,7 +96,7 @@ func (fip *fiParserImpl) parseFIGICodes(r io.ReadCloser, listings map[string]str
 	return figiCodes, nil
 }
 
-func (fip *fiParserImpl) parseListings(r io.ReadCloser, fis map[string][]rawFinancialInstrument) map[string]string {
+func (fip *fiParserImpl) parseListings(r io.ReadCloser, fis map[string]rawFinancialInstrument) map[string]string {
 	infoLogger.Println("Starting listings parsing.")
 	listings := map[string]string{}
 	scanner := bufio.NewScanner(r)
@@ -112,16 +112,8 @@ func (fip *fiParserImpl) parseListings(r io.ReadCloser, fis map[string][]rawFina
 
 		if strings.HasSuffix(securityID, "-R") && primaryEquityID != "" {
 			primaryListingID := record[4]
-			rawFis := fis[primaryEquityID]
-			if len(rawFis) == 0 {
-				continue
-			}
-			if len(rawFis) != 1 {
-				warnLogger.Printf("Security with ID [%s] has multiple matches [%d]", primaryEquityID, len(rawFis))
-				continue
-			}
-			rawFi := rawFis[0]
-			if rawFi.primaryListingID == securityID {
+			rawFi, ok := fis[primaryEquityID]
+			if ok && rawFi.primaryListingID == securityID {
 				listings[primaryListingID] = primaryEquityID
 			}
 		}

@@ -22,8 +22,8 @@ type fiTransformerImpl struct {
 }
 
 type fiMappings struct {
-	figiCodeToSecurityIDs               map[string][]string
-	securityIDtoRawFinancialInstruments map[string][]rawFinancialInstrument
+	figiCodeToSecurityIDs               map[string]string
+	securityIDtoRawFinancialInstruments map[string]rawFinancialInstrument
 	securityIDToEntityMapping           map[string]string
 }
 
@@ -43,29 +43,16 @@ func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 		errorLogger.Println(err)
 		return map[string]financialInstrument{}
 	}
-	//fmt.Println(fiData.securityIDtoRawFinancialInstruments)
 	fis := make(map[string]financialInstrument)
-	for figi, secIDs := range fiData.figiCodeToSecurityIDs {
-		var rawFIsForFIGI []rawFinancialInstrument
-		for _, sID := range secIDs {
-			rawFIsForFIGI = append(rawFIsForFIGI, fiData.securityIDtoRawFinancialInstruments[sID]...)
+	for figi, sID := range fiData.figiCodeToSecurityIDs {
+		r := fiData.securityIDtoRawFinancialInstruments[sID]
+		uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
+		fis[uid] = financialInstrument{
+			figiCode:     figi,
+			orgID:        doubleMD5Hash(r.orgID),
+			securityID:   r.securityID,
+			securityName: r.securityName,
 		}
-		count := 0
-		for _, r := range rawFIsForFIGI {
-			count++
-			uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
-			fis[uid] = financialInstrument{
-				figiCode:     figi,
-				orgID:        doubleMD5Hash(r.orgID),
-				securityID:   r.securityID,
-				securityName: r.securityName,
-			}
-
-		}
-		if count > 1 {
-			warnLogger.Printf("More raw fi mappings with empty termination date for FIGI: [%s]! using the last one [%v]", figi, rawFIsForFIGI)
-		}
-
 	}
 
 	infoLogger.Printf("Loading FIs finished in [%v]", time.Since(start))
