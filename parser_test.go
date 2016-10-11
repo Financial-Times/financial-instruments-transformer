@@ -123,7 +123,7 @@ func TestParseListings(t *testing.T) {
 	}{
 		// security record is not complete
 		{
-			listings: `"H73FN8-R"|"GBP"|"Ralph Martindale & Company Ltd"|"GG9B0P-S"|`,
+			listings: `"H73FN8-R"|"GBP"|"Ralph Martindale & Company Ltd"|"GG9B0P-S"`,
 			secIDToRawFI: map[string]rawFinancialInstrument{
 				"GG9B0P-S": rawFinancialInstrument{
 					securityID:       "GG9B0P-S",
