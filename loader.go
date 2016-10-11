@@ -1,9 +1,12 @@
 package main
 
 import (
-	"errors"
-	"github.com/rlmcpherson/s3gof3r"
+	"github.com/minio/minio-go"
+	"github.com/pkg/errors"
 	"io"
+	"regexp"
+	"strings"
+	"time"
 )
 
 type loader interface {
@@ -11,29 +14,57 @@ type loader interface {
 }
 
 type s3Loader struct {
-	bucket *s3gof3r.Bucket
+	client minio.Client
+	config s3Config
 }
 
 func news3Loader(c s3Config) (s3Loader, error) {
-	k, err := s3gof3r.EnvKeys()
+	s3Client, err := minio.New(c.domain, c.accKey, c.secretKey, true)
 	if err != nil {
 		return s3Loader{}, err
 	}
-	s3 := s3gof3r.New(c.domain, k)
-	loader := s3Loader{
-		bucket: s3.Bucket(c.bucket),
-	}
-	return loader, nil
+	return s3Loader{*s3Client, c}, nil
 }
 
 func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {
-	b := s3Loader.bucket
-	if b == nil {
+	s3Client := &s3Loader.client
+	if s3Client == nil {
 		return nil, errors.New("S3 bucket not initialised. Please call news3Loader(c s3Config) function first")
 	}
-	r, _, err := b.GetReader(path, nil)
-	if err != nil {
-		return nil, err
+
+	doneCh := make(chan struct{})
+	defer close(doneCh)
+
+	r := regexp.MustCompile("[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])")
+	var latestObj = &struct {
+		object minio.ObjectInfo
+		date   time.Time
+	}{}
+
+	for object := range s3Client.ListObjects(s3Loader.config.bucket, path, true, doneCh) {
+		if object.Err != nil {
+			return nil, object.Err
+		}
+		if !strings.Contains(object.Key, path) || strings.Contains(object.Key, "md5") {
+			continue
+		}
+
+		dateFromName := r.FindStringSubmatch(object.Key)
+		if len(dateFromName) == 0 {
+			warnLogger.Printf("Ignoring file [%s]. Cannot parse name.", object.Key)
+			continue
+		}
+		date, err := time.Parse("2006-01-02", dateFromName[0])
+		if err != nil {
+			errorLogger.Println(err)
+			continue
+		}
+
+		if latestObj == nil || date.After(latestObj.date) {
+			latestObj.object = object
+			latestObj.date = date
+		}
 	}
-	return r, nil
+	infoLogger.Printf("Loading object: [%s] for resource [%s]", latestObj.object.Key, path)
+	return s3Client.GetObject(s3Loader.config.bucket, latestObj.object.Key)
 }
