@@ -9,8 +9,8 @@ import (
 )
 
 const secToFIGIs = "sym_bbg"
-const securityEntityMap = "sym_sec_entity"
 const securities = "sym_coverage"
+const securityEntityMap = "sym_sec_entity"
 
 type fiTransformer interface {
 	Transform() map[string]financialInstrument
@@ -24,37 +24,18 @@ type fiTransformerImpl struct {
 type fiMappings struct {
 	figiCodeToSecurityIDs               map[string]string
 	securityIDtoRawFinancialInstruments map[string]rawFinancialInstrument
-	securityIDToEntityMapping           map[string]string
-}
-
-//same as in org-transformer
-func doubleMD5Hash(input string) string {
-	h := md5.New()
-	io.WriteString(h, input)
-	return uuid.NewMD5(uuid.UUID{}, h.Sum(nil)).String()
 }
 
 func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 	infoLogger.Println("Started loading FIs.")
 	start := time.Now()
 
-	fiData, err := getMappings(*fit)
+	fiMappings, err := getMappings(*fit)
 	if err != nil {
 		errorLogger.Println(err)
 		return map[string]financialInstrument{}
 	}
-	fis := make(map[string]financialInstrument)
-	for figi, sID := range fiData.figiCodeToSecurityIDs {
-		r := fiData.securityIDtoRawFinancialInstruments[sID]
-		uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
-		fis[uid] = financialInstrument{
-			figiCode:     figi,
-			orgID:        doubleMD5Hash(r.orgID),
-			securityID:   r.securityID,
-			securityName: r.securityName,
-		}
-	}
-
+	fis := transformMappings(fiMappings)
 	infoLogger.Printf("Loading FIs finished in [%v]", time.Since(start))
 	infoLogger.Printf("Nr of FIs: [%v]", len(fis))
 
@@ -101,4 +82,26 @@ func getMappings(fit fiTransformerImpl) (fiMappings, error) {
 		securityIDtoRawFinancialInstruments: fis,
 		figiCodeToSecurityIDs:               figis,
 	}, nil
+}
+
+func transformMappings(fiData fiMappings) map[string]financialInstrument {
+	fis := make(map[string]financialInstrument)
+	for figi, sID := range fiData.figiCodeToSecurityIDs {
+		r := fiData.securityIDtoRawFinancialInstruments[sID]
+		uid := uuid.NewMD5(uuid.UUID{}, []byte(r.securityID)).String()
+		fis[uid] = financialInstrument{
+			figiCode:     figi,
+			orgID:        doubleMD5Hash(r.orgID),
+			securityID:   r.securityID,
+			securityName: r.securityName,
+		}
+	}
+	return fis
+}
+
+//same as in org-transformer
+func doubleMD5Hash(input string) string {
+	h := md5.New()
+	io.WriteString(h, input)
+	return uuid.NewMD5(uuid.UUID{}, h.Sum(nil)).String()
 }

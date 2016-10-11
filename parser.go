@@ -34,6 +34,7 @@ func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadC
 			infoLogger.Println(err)
 			continue
 		}
+
 		primaryEquityId := record[3]
 		primaryListingId := record[4]
 		securityType := record[6]
@@ -44,6 +45,7 @@ func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadC
 			primaryEquityId == securityID &&
 			securityType == "SHARE" &&
 			primaryListingId != "" {
+
 			equity := rawFinancialInstrument{
 				securityID:       securityID,
 				fiType:           universeType,
@@ -65,9 +67,9 @@ func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadC
 		}
 		securityID := record[0]
 		orgID := record[1]
-		rawFI, ok := rawFIs[securityID]
-		if ok {
-			rawFI.orgID = orgID
+		if fi, ok := rawFIs[securityID]; ok {
+			fi.orgID = orgID
+			rawFIs[securityID] = fi
 		}
 	}
 
@@ -98,7 +100,7 @@ func (fip *fiParserImpl) parseFIGICodes(r io.ReadCloser, listings map[string]str
 
 func (fip *fiParserImpl) parseListings(r io.ReadCloser, fis map[string]rawFinancialInstrument) map[string]string {
 	infoLogger.Println("Starting listings parsing.")
-	listings := map[string]string{}
+	listings := make(map[string]string)
 	scanner := bufio.NewScanner(r)
 	scanner.Scan() // skip first line
 	for scanner.Scan() {
@@ -112,13 +114,17 @@ func (fip *fiParserImpl) parseListings(r io.ReadCloser, fis map[string]rawFinanc
 
 		if strings.HasSuffix(securityID, "-R") && primaryEquityID != "" {
 			primaryListingID := record[4]
-			rawFi, ok := fis[primaryEquityID]
-			if ok && rawFi.primaryListingID == securityID {
-				listings[primaryListingID] = primaryEquityID
+			if primaryListingID == "" {
+				continue
 			}
+
+			rawFi, ok := fis[primaryEquityID]
+			if !ok || rawFi.primaryListingID != securityID {
+				continue
+			}
+			listings[primaryListingID] = primaryEquityID
 		}
 	}
 	infoLogger.Println("Fetched listings. Nr of records:", len(listings))
-
 	return listings
 }
