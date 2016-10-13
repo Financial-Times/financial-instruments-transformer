@@ -11,6 +11,7 @@ import (
 const secToFIGIs = "sym_bbg"
 const securities = "sym_coverage"
 const securityEntityMap = "sym_sec_entity"
+const entities = "ent_entity_coverage"
 
 type fiTransformer interface {
 	Transform() map[string]financialInstrument
@@ -35,6 +36,7 @@ func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
 		errorLogger.Println(err)
 		return map[string]financialInstrument{}
 	}
+
 	fis := transformMappings(fiMappings)
 	infoLogger.Printf("Loading FIs finished in [%v]", time.Since(start))
 	infoLogger.Printf("Nr of FIs: [%v]", len(fis))
@@ -59,7 +61,15 @@ func getMappings(fit fiTransformerImpl) (fiMappings, error) {
 	if err != nil {
 		return fiMappings{}, err
 	}
-
+	// filter only if an entity parsing function exist
+	if parseEntities := fit.parser.parseEntityFunc(); parseEntities != nil {
+		entReader, err := fit.loader.LoadResource(entities)
+		if err != nil {
+			return fiMappings{}, err
+		}
+		pubEnts := parseEntities(entReader)
+		applyPublicEntityFilter(fis, pubEnts)
+	}
 	lisReader, err := fit.loader.LoadResource(securities)
 	if err != nil {
 		return fiMappings{}, err
@@ -82,6 +92,15 @@ func getMappings(fit fiTransformerImpl) (fiMappings, error) {
 		securityIDtoRawFinancialInstruments: fis,
 		figiCodeToSecurityIDs:               figis,
 	}, nil
+}
+
+func applyPublicEntityFilter(fis map[string]rawFinancialInstrument, pubEnts map[string]bool) {
+	for k, fi := range fis {
+		if _, present := pubEnts[fi.orgID]; !present {
+			delete(fis, k)
+		}
+	}
+	infoLogger.Println("Number of fis after filtering non-public companies:", len(fis))
 }
 
 func transformMappings(fiData fiMappings) map[string]financialInstrument {

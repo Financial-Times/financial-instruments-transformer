@@ -260,3 +260,37 @@ func TestParseFIGICodes(t *testing.T) {
 		}
 	}
 }
+
+func TestParseEntities(t *testing.T) {
+	headerLine := `"FACTSET_ENTITY_ID"|"ENTITY_NAME"|"ENTITY_PROPER_NAME"|"PRIMARY_SIC_CODE"|"INDUSTRY_CODE"|"SECTOR_CODE"|"ISO_COUNTRY"|"METRO_AREA"|"STATE_PROVINCE"|"ZIP_POSTAL_CODE"|"WEB_SITE"|"ENTITY_TYPE"|"ENTITY_SUB_TYPE"|"YEAR_FOUNDED"|"ISO_COUNTRY_INCORP"|"ISO_COUNTRY_COR"|"NACE_CODE"`
+	var testCases = []struct {
+		entities string
+		expected map[string]bool
+	}{
+		{
+			entities: ``,
+			expected: map[string]bool{},
+		},
+		// no PUB entity
+		{
+			entities: `"04CXMV-E"|"Beta International - Valor"|"Beta International - Valor"|"6722"|"6010"|"6000"|"LU"|""|""|""|""|"MUT"|""||"LU"|""|"64.30"` + "\n" +
+				`"007BPZ-E"|"MORTGAGE PARTNERS LENDING CORP"|"Mortgage Partners Lending Corp."|""|""|""|"US"|"Denver/CO Metro"|"CO"|"80120"|""|"PVT"|"CP"||"US"|""|""`,
+			expected: map[string]bool{},
+		},
+		// only PUB entity is returned
+		{
+			entities: `"04CXMV-E"|"Beta International - Valor"|"Beta International - Valor"|"6722"|"6010"|"6000"|"LU"|""|""|""|""|"MUT"|""||"LU"|""|"64.30"` + "\n" +
+				`"05G2M9-E"|"MARKS & SPENCER GROUP PLC"|"Marks & Spencer Group Plc"|"5311"|"3515"|"3500"|"GB"|"London/UK Metro"|"LO"|"W2 1NW"|"corporate.marksandspencer.com"|"PUB"|"CP"|1884|"GB"|"GB"|"47.19"`,
+			expected: map[string]bool{
+				"05G2M9-E": true,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		pubEntities := testFIParser.parseEntityFunc()(wrapInReadCloser(headerLine + "\n" + tc.entities))
+		if !reflect.DeepEqual(pubEntities, tc.expected) {
+			t.Errorf("Expected: [%v]. Actual: [%v]", tc.expected, pubEntities)
+		}
+	}
+}

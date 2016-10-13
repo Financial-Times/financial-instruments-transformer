@@ -7,14 +7,16 @@ import (
 	"strings"
 )
 
+const publicEntity = "PUB"
+
 type fiParser interface {
 	parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string]rawFinancialInstrument, error)
 	parseListings(r io.ReadCloser, fis map[string]rawFinancialInstrument) map[string]string
 	parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string]string, error)
+	parseEntityFunc() func(r io.ReadCloser) map[string]bool
 }
 
-type fiParserImpl struct {
-}
+type fiParserImpl struct{}
 
 func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string]rawFinancialInstrument, error) {
 	infoLogger.Println("Starting security parsing.")
@@ -125,6 +127,29 @@ func (fip *fiParserImpl) parseListings(r io.ReadCloser, fis map[string]rawFinanc
 			listings[primaryListingID] = primaryEquityID
 		}
 	}
-	infoLogger.Println("Fetched listings. Nr of records:", len(listings))
+	infoLogger.Printf("Fetched listings. Nr of records: [%v]", len(listings))
 	return listings
+}
+
+func (fip *fiParserImpl) parseEntityFunc() func(r io.ReadCloser) map[string]bool {
+	return func(r io.ReadCloser) map[string]bool {
+		infoLogger.Println("Starting entity parsing.")
+		entities := make(map[string]bool)
+		scanner := bufio.NewScanner(r)
+		scanner.Scan() // skip first line
+		for scanner.Scan() {
+			record := strings.Split(strings.Replace(scanner.Text(), `"`, ``, -1), "|")
+			if len(record) < 12 {
+				infoLogger.Println("Skip entity:", record)
+				continue
+			}
+			entityID := record[0]
+			entityType := record[11]
+			if entityType == publicEntity {
+				entities[entityID] = true
+			}
+		}
+		infoLogger.Printf("Fetched public entities. Nr of records: [%v]", len(entities))
+		return entities
+	}
 }
