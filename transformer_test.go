@@ -13,14 +13,15 @@ type loaderMock struct {
 	mockLoadResources func(name string) (io.ReadCloser, error)
 }
 
+func (l *loaderMock) LoadResource(name string) (io.ReadCloser, error) {
+	return l.mockLoadResources(name)
+}
+
 type parserMock struct {
 	mockParseFIs       func() (map[string]rawFinancialInstrument, error)
 	mockParseFIGICodes func() (map[string]string, error)
 	mockParseListings  func() map[string]string
-}
-
-func (l *loaderMock) LoadResource(name string) (io.ReadCloser, error) {
-	return l.mockLoadResources(name)
+	mockParseEntities  func(r io.ReadCloser) map[string]bool
 }
 
 func (p *parserMock) parseFIs(r1, r2 io.ReadCloser) (map[string]rawFinancialInstrument, error) {
@@ -35,10 +36,8 @@ func (p *parserMock) parseListings(r io.ReadCloser, m map[string]rawFinancialIns
 	return p.mockParseListings()
 }
 
-var lm = &loaderMock{
-	mockLoadResources: func(name string) (io.ReadCloser, error) {
-		return ioutil.NopCloser(strings.NewReader("")), nil
-	},
+func (p *parserMock) parseEntityFunc() func(r io.ReadCloser) map[string]bool {
+	return p.mockParseEntities
 }
 
 type s3LoaderMock struct {
@@ -47,6 +46,12 @@ type s3LoaderMock struct {
 
 func (s3 *s3LoaderMock) LoadResource(name string) (io.ReadCloser, error) {
 	return s3.mockLoad(name)
+}
+
+var lm = &loaderMock{
+	mockLoadResources: func(name string) (io.ReadCloser, error) {
+		return ioutil.NopCloser(strings.NewReader("")), nil
+	},
 }
 
 type errorCloser struct {
@@ -78,7 +83,7 @@ func TestGetMappings(t *testing.T) {
 			err:      loaderError,
 			expected: fiMappings{},
 		},
-		// edge cases
+		// nil & empty cases
 		{
 			lm: lm,
 			pm: &parserMock{
@@ -91,6 +96,7 @@ func TestGetMappings(t *testing.T) {
 				mockParseFIGICodes: func() (map[string]string, error) {
 					return nil, nil
 				},
+				mockParseEntities: nil,
 			},
 			err:      nil,
 			expected: fiMappings{},
@@ -167,6 +173,112 @@ func TestGetMappings(t *testing.T) {
 			t.Errorf("Expected: [%v]. Actual: [%v]", tc.expected, m)
 		}
 	}
+}
+
+func TestApplyPublicEntityFiltering(t *testing.T) {
+	var tests = []struct {
+		rawFIs   map[string]rawFinancialInstrument
+		pubEnts  map[string]bool
+		expected map[string]rawFinancialInstrument
+	}{
+		{
+			rawFIs:   map[string]rawFinancialInstrument{},
+			pubEnts:  map[string]bool{},
+			expected: map[string]rawFinancialInstrument{},
+		},
+		// empty orgID
+		{
+			rawFIs: map[string]rawFinancialInstrument{
+				"ABCDEF-S": rawFinancialInstrument{
+					securityID:       "ABCDEF-S",
+					orgID:            "",
+					fiType:           "EQ",
+					securityName:     "foobar INC",
+					primaryListingID: "LKJHHM-L",
+				},
+			},
+			pubEnts: map[string]bool{
+				"MNBVCX-E": true,
+			},
+			expected: map[string]rawFinancialInstrument{},
+		},
+		// no matching orgID
+		{
+			rawFIs: map[string]rawFinancialInstrument{
+				"ABCDEF-S": rawFinancialInstrument{
+					securityID:       "ABCDEF-S",
+					orgID:            "MNBVCX-E",
+					fiType:           "EQ",
+					securityName:     "foobar INC",
+					primaryListingID: "LKJHHM-L",
+				},
+			},
+			pubEnts: map[string]bool{
+				"MNBVCX-EE": true,
+			},
+			expected: map[string]rawFinancialInstrument{},
+		},
+		// fi with pub entity is retained
+		{
+			rawFIs: map[string]rawFinancialInstrument{
+				"ABCDEF-S": rawFinancialInstrument{
+					securityID:       "ABCDEF-S",
+					orgID:            "MNBVCX-E",
+					fiType:           "EQ",
+					securityName:     "foobar INC",
+					primaryListingID: "LKJHHM-L",
+				},
+			},
+			pubEnts: map[string]bool{
+				"MNBVCX-E": true,
+			},
+			expected: map[string]rawFinancialInstrument{
+				"ABCDEF-S": rawFinancialInstrument{
+					securityID:       "ABCDEF-S",
+					orgID:            "MNBVCX-E",
+					fiType:           "EQ",
+					securityName:     "foobar INC",
+					primaryListingID: "LKJHHM-L",
+				},
+			},
+		},
+		// fi w/ pub entity is retained, other is deleted
+		{
+			rawFIs: map[string]rawFinancialInstrument{
+				"ABCDEF-S": rawFinancialInstrument{
+					securityID:       "ABCDEF-S",
+					orgID:            "MNBVCX-E",
+					fiType:           "EQ",
+					securityName:     "foobar INC",
+					primaryListingID: "LKJHHM-L",
+				},
+				"FEDCBA-S": rawFinancialInstrument{
+					securityID:       "FEDCBA-S",
+					orgID:            "MNBVCX-EE",
+					fiType:           "EQ",
+					securityName:     "barfoo INC",
+					primaryListingID: "LKJHHM-L",
+				},
+			},
+			pubEnts: map[string]bool{
+				"MNBVCX-E": true,
+			},
+			expected: map[string]rawFinancialInstrument{
+				"ABCDEF-S": rawFinancialInstrument{
+					securityID:       "ABCDEF-S",
+					orgID:            "MNBVCX-E",
+					fiType:           "EQ",
+					securityName:     "foobar INC",
+					primaryListingID: "LKJHHM-L",
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		applyPublicEntityFilter(tc.rawFIs, tc.pubEnts)
+	}
+
 }
 
 func TestTransformMappings(t *testing.T) {
