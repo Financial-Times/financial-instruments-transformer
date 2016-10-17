@@ -35,7 +35,7 @@ Successful response:
     * status code: 200
     * body: `{"uuid":"11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b","prefLabel":"SAGA COMMUNICATIONS INC  CL A","alternativeIdentifiers":{"uuids":["11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b"],"factsetIdentifier":"DCZBY8-S-US","figiCode":"BBG000F9R281"},"issuedBy":"3aa12e48-8835-30d2-9ed9-606447ebd36a"}`
     
-2. /transformers/financialinstruments/__ids: reads the IDs of the financial instruments.
+2. /transformers/financial-instruments/__ids: reads the IDs of the financial instruments.
 
 Successful response:
     * status code: 200
