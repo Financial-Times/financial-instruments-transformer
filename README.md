@@ -29,7 +29,7 @@ Endpoints
 ### GET
 1. /transformers/financialinstruments/{uuid}: reads the financial instrument with the given uuid. A not found financial instrument will result in a 404 status code response.
 
-`curl -H "X-Request-Id: 123" localhost:8080/transformers/financialinstruments/11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b`
+`curl -H "X-Request-Id: 123" localhost:8080/transformers/financial-instruments/11f5ccf1-e6bf-3ec6-abaf-6380009a6c4b`
 
 Successful response:
     * status code: 200
