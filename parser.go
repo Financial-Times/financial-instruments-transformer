@@ -10,15 +10,15 @@ import (
 const publicEntity = "PUB"
 
 type fiParser interface {
-	parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string]rawFinancialInstrument, error)
-	parseListings(r io.ReadCloser, fis map[string]rawFinancialInstrument) map[string]string
-	parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string]string, error)
+	parseFIs(secReader io.Reader, secOrgReader io.Reader) (map[string]rawFinancialInstrument, error)
+	parseListings(r io.Reader, fis map[string]rawFinancialInstrument) map[string]string
+	parseFIGICodes(r io.Reader, listings map[string]string) (map[string]string, error)
 	parseEntityFunc() func(r io.ReadCloser) map[string]bool
 }
 
 type fiParserImpl struct{}
 
-func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadCloser) (map[string]rawFinancialInstrument, error) {
+func (fip *fiParserImpl) parseFIs(secReader io.Reader, secOrgReader io.Reader) (map[string]rawFinancialInstrument, error) {
 	infoLogger.Println("Starting security parsing.")
 	rawFIs := make(map[string]rawFinancialInstrument)
 	scanner := bufio.NewScanner(secReader)
@@ -33,20 +33,20 @@ func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadC
 		universeType := record[13]
 		activeFlag, err := strconv.Atoi(record[5])
 		if err != nil {
-			infoLogger.Println(err)
+			errorLogger.Println(err)
 			continue
 		}
 
-		primaryEquityId := record[3]
-		primaryListingId := record[4]
+		primaryEquityID := record[3]
+		primaryListingID := record[4]
 		securityType := record[6]
 
 		if universeType == "EQ" &&
 			strings.HasSuffix(securityID, "-S") &&
 			activeFlag == 1 &&
-			primaryEquityId == securityID &&
+			primaryEquityID == securityID &&
 			securityType == "SHARE" &&
-			primaryListingId != "" {
+			primaryListingID != "" {
 
 			equity := rawFinancialInstrument{
 				securityID:       securityID,
@@ -80,7 +80,7 @@ func (fip *fiParserImpl) parseFIs(secReader io.ReadCloser, secOrgReader io.ReadC
 	return rawFIs, nil
 }
 
-func (fip *fiParserImpl) parseFIGICodes(r io.ReadCloser, listings map[string]string) (map[string]string, error) {
+func (fip *fiParserImpl) parseFIGICodes(r io.Reader, listings map[string]string) (map[string]string, error) {
 	infoLogger.Println("Starting FIGI code parsing.")
 	figiCodes := make(map[string]string)
 	scanner := bufio.NewScanner(r)
@@ -100,7 +100,7 @@ func (fip *fiParserImpl) parseFIGICodes(r io.ReadCloser, listings map[string]str
 	return figiCodes, nil
 }
 
-func (fip *fiParserImpl) parseListings(r io.ReadCloser, fis map[string]rawFinancialInstrument) map[string]string {
+func (fip *fiParserImpl) parseListings(r io.Reader, fis map[string]rawFinancialInstrument) map[string]string {
 	infoLogger.Println("Starting listings parsing.")
 	listings := make(map[string]string)
 	scanner := bufio.NewScanner(r)

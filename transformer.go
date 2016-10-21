@@ -14,7 +14,8 @@ const securityEntityMap = "sym_sec_entity"
 const entities = "ent_entity_coverage"
 
 type fiTransformer interface {
-	Transform() map[string]financialInstrument
+	Transform() (map[string]financialInstrument, error)
+	checkConnectivityToS3() error
 }
 
 type fiTransformerImpl struct {
@@ -27,21 +28,20 @@ type fiMappings struct {
 	securityIDtoRawFinancialInstruments map[string]rawFinancialInstrument
 }
 
-func (fit *fiTransformerImpl) Transform() map[string]financialInstrument {
+func (fit *fiTransformerImpl) Transform() (map[string]financialInstrument, error) {
 	infoLogger.Println("Started loading FIs.")
 	start := time.Now()
 
-	fiMappings, err := getMappings(*fit)
+	mappings, err := getMappings(*fit)
 	if err != nil {
-		errorLogger.Println(err)
-		return map[string]financialInstrument{}
+		return map[string]financialInstrument{}, err
 	}
 
-	fis := transformMappings(fiMappings)
+	fis := transformMappings(mappings)
 	infoLogger.Printf("Loading FIs finished in [%v]", time.Since(start))
 	infoLogger.Printf("Nr of FIs: [%v]", len(fis))
 
-	return fis
+	return fis, nil
 }
 
 func getMappings(fit fiTransformerImpl) (fiMappings, error) {
@@ -123,4 +123,12 @@ func doubleMD5Hash(input string) string {
 	h := md5.New()
 	io.WriteString(h, input)
 	return uuid.NewMD5(uuid.UUID{}, h.Sum(nil)).String()
+}
+
+func (fit *fiTransformerImpl) checkConnectivityToS3() error {
+	_, err := fit.loader.BucketExists()
+	if err != nil {
+		return err
+	}
+	return nil
 }

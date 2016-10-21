@@ -1,19 +1,27 @@
 package main
 
 type fiService interface {
-	Init(fit fiTransformer)
+	Init()
 	Read(UUID string) (financialInstrument, bool)
 	IDs() []string
 	Count() int
 	IsInitialised() bool
+	checkConnectivity() error
 }
 
 type fiServiceImpl struct {
+	fit                  fiTransformer
+	config               s3Config
 	financialInstruments map[string]financialInstrument
 }
 
-func (fis *fiServiceImpl) Init(fit fiTransformer) {
-	fis.financialInstruments = fit.Transform()
+func (fis *fiServiceImpl) Init() {
+	financialInstruments, err := fis.fit.Transform()
+	if err != nil {
+		errorLogger.Println(err)
+		return
+	}
+	fis.financialInstruments = financialInstruments
 }
 
 func (fis *fiServiceImpl) Read(UUID string) (financialInstrument, bool) {
@@ -36,4 +44,8 @@ func (fis *fiServiceImpl) Count() int {
 
 func (fis *fiServiceImpl) IsInitialised() bool {
 	return fis.financialInstruments != nil
+}
+
+func (fis *fiServiceImpl) checkConnectivity() error {
+	return fis.fit.checkConnectivityToS3()
 }

@@ -11,10 +11,15 @@ import (
 
 type loaderMock struct {
 	mockLoadResources func(name string) (io.ReadCloser, error)
+	mockBucketExists  func() (bool, error)
 }
 
 func (l *loaderMock) LoadResource(name string) (io.ReadCloser, error) {
 	return l.mockLoadResources(name)
+}
+
+func (l *loaderMock) BucketExists() (bool, error) {
+	return l.mockBucketExists()
 }
 
 type parserMock struct {
@@ -24,15 +29,15 @@ type parserMock struct {
 	mockParseEntities  func(r io.ReadCloser) map[string]bool
 }
 
-func (p *parserMock) parseFIs(r1, r2 io.ReadCloser) (map[string]rawFinancialInstrument, error) {
+func (p *parserMock) parseFIs(r1, r2 io.Reader) (map[string]rawFinancialInstrument, error) {
 	return p.mockParseFIs()
 }
 
-func (p *parserMock) parseFIGICodes(r io.ReadCloser, m map[string]string) (map[string]string, error) {
+func (p *parserMock) parseFIGICodes(r io.Reader, m map[string]string) (map[string]string, error) {
 	return p.mockParseFIGICodes()
 }
 
-func (p *parserMock) parseListings(r io.ReadCloser, m map[string]rawFinancialInstrument) map[string]string {
+func (p *parserMock) parseListings(r io.Reader, m map[string]rawFinancialInstrument) map[string]string {
 	return p.mockParseListings()
 }
 
@@ -41,10 +46,10 @@ func (p *parserMock) parseEntityFunc() func(r io.ReadCloser) map[string]bool {
 }
 
 type s3LoaderMock struct {
-	mockLoad func(name string) (io.ReadCloser, error)
+	mockLoad func(name string) (io.Reader, error)
 }
 
-func (s3 *s3LoaderMock) LoadResource(name string) (io.ReadCloser, error) {
+func (s3 *s3LoaderMock) LoadResource(name string) (io.Reader, error) {
 	return s3.mockLoad(name)
 }
 
@@ -59,11 +64,11 @@ type errorCloser struct {
 }
 
 func (errorCloser) Close() error {
-	return closerError
+	return errCloser
 }
 
-var closerError = errors.New("Error while reading from the reader")
-var loaderError = errors.New("Error loading resource")
+var errCloser = errors.New("Error while reading from the reader")
+var errLoader = errors.New("Error loading resource")
 
 func TestGetMappings(t *testing.T) {
 	var tests = []struct {
@@ -76,11 +81,11 @@ func TestGetMappings(t *testing.T) {
 		{
 			lm: &loaderMock{
 				mockLoadResources: func(name string) (io.ReadCloser, error) {
-					return nil, loaderError
+					return nil, errLoader
 				},
 			},
 			pm:       &parserMock{},
-			err:      loaderError,
+			err:      errLoader,
 			expected: fiMappings{},
 		},
 		// nil & empty cases
@@ -126,7 +131,7 @@ func TestGetMappings(t *testing.T) {
 			pm: &parserMock{
 				mockParseFIs: func() (map[string]rawFinancialInstrument, error) {
 					return map[string]rawFinancialInstrument{
-						"ABCDEF-S": rawFinancialInstrument{
+						"ABCDEF-S": {
 							securityID:       "ABCDEF-S",
 							orgID:            "MNBVCX-E",
 							fiType:           "EQ",
@@ -152,7 +157,7 @@ func TestGetMappings(t *testing.T) {
 					"BBG000123NMAV": "ABCDEF-S",
 				},
 				securityIDtoRawFinancialInstruments: map[string]rawFinancialInstrument{
-					"ABCDEF-S": rawFinancialInstrument{
+					"ABCDEF-S": {
 						securityID:       "ABCDEF-S",
 						orgID:            "MNBVCX-E",
 						fiType:           "EQ",
@@ -189,7 +194,7 @@ func TestApplyPublicEntityFiltering(t *testing.T) {
 		// empty orgID
 		{
 			rawFIs: map[string]rawFinancialInstrument{
-				"ABCDEF-S": rawFinancialInstrument{
+				"ABCDEF-S": {
 					securityID:       "ABCDEF-S",
 					orgID:            "",
 					fiType:           "EQ",
@@ -205,7 +210,7 @@ func TestApplyPublicEntityFiltering(t *testing.T) {
 		// no matching orgID
 		{
 			rawFIs: map[string]rawFinancialInstrument{
-				"ABCDEF-S": rawFinancialInstrument{
+				"ABCDEF-S": {
 					securityID:       "ABCDEF-S",
 					orgID:            "MNBVCX-E",
 					fiType:           "EQ",
@@ -221,7 +226,7 @@ func TestApplyPublicEntityFiltering(t *testing.T) {
 		// fi with pub entity is retained
 		{
 			rawFIs: map[string]rawFinancialInstrument{
-				"ABCDEF-S": rawFinancialInstrument{
+				"ABCDEF-S": {
 					securityID:       "ABCDEF-S",
 					orgID:            "MNBVCX-E",
 					fiType:           "EQ",
@@ -233,7 +238,7 @@ func TestApplyPublicEntityFiltering(t *testing.T) {
 				"MNBVCX-E": true,
 			},
 			expected: map[string]rawFinancialInstrument{
-				"ABCDEF-S": rawFinancialInstrument{
+				"ABCDEF-S": {
 					securityID:       "ABCDEF-S",
 					orgID:            "MNBVCX-E",
 					fiType:           "EQ",
@@ -245,14 +250,14 @@ func TestApplyPublicEntityFiltering(t *testing.T) {
 		// fi w/ pub entity is retained, other is deleted
 		{
 			rawFIs: map[string]rawFinancialInstrument{
-				"ABCDEF-S": rawFinancialInstrument{
+				"ABCDEF-S": {
 					securityID:       "ABCDEF-S",
 					orgID:            "MNBVCX-E",
 					fiType:           "EQ",
 					securityName:     "foobar INC",
 					primaryListingID: "LKJHHM-L",
 				},
-				"FEDCBA-S": rawFinancialInstrument{
+				"FEDCBA-S": {
 					securityID:       "FEDCBA-S",
 					orgID:            "MNBVCX-EE",
 					fiType:           "EQ",
@@ -264,7 +269,7 @@ func TestApplyPublicEntityFiltering(t *testing.T) {
 				"MNBVCX-E": true,
 			},
 			expected: map[string]rawFinancialInstrument{
-				"ABCDEF-S": rawFinancialInstrument{
+				"ABCDEF-S": {
 					securityID:       "ABCDEF-S",
 					orgID:            "MNBVCX-E",
 					fiType:           "EQ",
@@ -304,7 +309,7 @@ func TestTransformMappings(t *testing.T) {
 				"BBG000123NMAV": "ABCDEF-S",
 			},
 			secIDstoRawFIs: map[string]rawFinancialInstrument{
-				"ABCDEF-S": rawFinancialInstrument{
+				"ABCDEF-S": {
 					securityID:       "ABCDEF-S",
 					orgID:            "MNBVCX-E",
 					fiType:           "EQ",
@@ -313,7 +318,7 @@ func TestTransformMappings(t *testing.T) {
 				},
 			},
 			expected: map[string]financialInstrument{
-				"fd0d50ba-7031-3ebf-a594-4806b65a74bd": financialInstrument{
+				"fd0d50ba-7031-3ebf-a594-4806b65a74bd": {
 					figiCode:     "BBG000123NMAV",
 					securityID:   "ABCDEF-S",
 					orgID:        "6f2a22e5-2fb6-304e-b92b-1438f306dc94",

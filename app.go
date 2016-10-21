@@ -1,12 +1,14 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
-	"github.com/jawher/mow.cli"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"strconv"
+
+	"github.com/Financial-Times/go-fthealth/v1a"
+	"github.com/gorilla/mux"
+	"github.com/jawher/mow.cli"
 )
 
 func init() {
@@ -58,17 +60,20 @@ func main() {
 			errorLogger.Printf("[%v]", err)
 		}
 
-		fiParser := &fiParserImpl{}
-		fit := &fiTransformerImpl{
+		fiParser := fiParserImpl{}
+		fit := fiTransformerImpl{
 			loader: &s3Loader,
-			parser: fiParser,
+			parser: &fiParser,
 		}
-		fis := &fiServiceImpl{}
-		go func(fit fiTransformer) {
-			fis.Init(fit)
-		}(fit)
+		fis := fiServiceImpl{
+			fit:    &fit,
+			config: s3,
+		}
+		go func() {
+			fis.Init()
+		}()
 
-		httpHandler := &httpHandler{fiService: fis}
+		httpHandler := &httpHandler{fiService: &fis}
 		listen(httpHandler, *port)
 	}
 
@@ -84,8 +89,8 @@ func listen(h *httpHandler, port int) {
 	r.HandleFunc("/transformers/financial-instruments/__count", h.Count).Methods("GET")
 	r.HandleFunc("/transformers/financial-instruments/__ids", h.IDs).Methods("GET")
 	r.HandleFunc("/transformers/financial-instruments/{id}", h.Read).Methods("GET")
-	r.HandleFunc("/__health", h.health()).Methods("GET")
-	r.HandleFunc("/__gtg", h.gtg()).Methods("GET")
+	r.HandleFunc("/__health", v1a.Handler("Financial Instruments Transformer Healthchecks", "Checks for accessing Amazon S3 bucket", h.amazonS3Healthcheck()))
+	r.HandleFunc("/__gtg", h.goodToGo)
 	err := http.ListenAndServe(":"+strconv.Itoa(port), r)
 	if err != nil {
 		errorLogger.Println(err)
