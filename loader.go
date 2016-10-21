@@ -11,6 +11,7 @@ import (
 
 type loader interface {
 	LoadResource(name string) (io.ReadCloser, error)
+	BucketExists() (bool, error)
 }
 
 type s3Loader struct {
@@ -67,4 +68,8 @@ func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {
 	}
 	infoLogger.Printf("Loading object: [%s] for resource [%s]", latestObj.object.Key, path)
 	return s3Client.GetObject(s3Loader.config.bucket, latestObj.object.Key)
+}
+
+func (s3Loader *s3Loader) BucketExists() (bool, error) {
+	return s3Loader.client.BucketExists(s3Loader.config.bucket)
 }

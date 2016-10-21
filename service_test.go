@@ -6,11 +6,16 @@ import (
 )
 
 type transformerMock struct {
-	mockTransform func() map[string]financialInstrument
+	mockTransform func() (map[string]financialInstrument, error)
+	mockCheckConnectivityToS3 func() error
 }
 
-func (tm *transformerMock) Transform() map[string]financialInstrument {
+func (tm *transformerMock) Transform() (map[string]financialInstrument, error) {
 	return tm.mockTransform()
+}
+
+func (tm *transformerMock) checkConnectivityToS3 () error {
+	return tm.mockCheckConnectivityToS3()
 }
 
 func TestFiServiceImpl_Read(t *testing.T) {
@@ -196,11 +201,11 @@ func TestFiServiceImpl_Init(t *testing.T) {
 	}
 
 	tm := &transformerMock{
-		mockTransform: func() map[string]financialInstrument {
+		mockTransform: func() (map[string]financialInstrument, error) {
 			return map[string]financialInstrument{
 				UUID1: fi,
 				UUID2: fi,
-			}
+			}, nil
 		},
 	}
 
@@ -209,8 +214,8 @@ func TestFiServiceImpl_Init(t *testing.T) {
 		UUID2: fi,
 	}
 
-	fis := fiServiceImpl{}
-	fis.Init(tm)
+	fis := fiServiceImpl{fit: tm}
+	fis.Init()
 
 	if !reflect.DeepEqual(fis.financialInstruments, expected) {
 		t.Errorf("Expected: [%v]. Actual: [%v]", expected, fis.financialInstruments)
