@@ -6,7 +6,7 @@ import (
 )
 
 type transformerMock struct {
-	mockTransform func() (map[string]financialInstrument, error)
+	mockTransform             func() (map[string]financialInstrument, error)
 	mockCheckConnectivityToS3 func() error
 }
 
@@ -14,7 +14,7 @@ func (tm *transformerMock) Transform() (map[string]financialInstrument, error) {
 	return tm.mockTransform()
 }
 
-func (tm *transformerMock) checkConnectivityToS3 () error {
+func (tm *transformerMock) checkConnectivityToS3() error {
 	return tm.mockCheckConnectivityToS3()
 }
 
