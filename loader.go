@@ -53,10 +53,6 @@ func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {
 			continue
 		}
 
-		if !strings.Contains(object.Key, path) || strings.Contains(object.Key, "md5") {
-			continue
-		}
-
 		dateFromName := r.FindStringSubmatch(object.Key)
 		if len(dateFromName) == 0 {
 			warnLogger.Printf("Ignoring file [%s]. Cannot parse name.", object.Key)
