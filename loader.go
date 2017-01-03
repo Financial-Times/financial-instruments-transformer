@@ -19,6 +19,8 @@ type s3Loader struct {
 	config s3Config
 }
 
+const financialInstrumentsFolderName = "financial-instruments"
+
 func news3Loader(c s3Config) (s3Loader, error) {
 	s3Client, err := minio.New(c.domain, c.accKey, c.secretKey, true)
 	if err != nil {
@@ -42,11 +44,12 @@ func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {
 		date   time.Time
 	}{}
 
-	for object := range s3Client.ListObjects(s3Loader.config.bucket, path, true, doneCh) {
+	for object := range s3Client.ListObjects(s3Loader.config.bucket, financialInstrumentsFolderName, true, doneCh) {
 		if object.Err != nil {
 			return nil, object.Err
 		}
-		if !strings.Contains(object.Key, path) || strings.Contains(object.Key, "md5") {
+
+		if !strings.Contains(object.Key, path) {
 			continue
 		}
 

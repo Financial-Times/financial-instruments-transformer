@@ -2,10 +2,9 @@ package main
 
 import (
 	"crypto/md5"
+	"github.com/pborman/uuid"
 	"io"
 	"time"
-
-	"github.com/pborman/uuid"
 )
 
 const secToFIGIs = "sym_bbg"
