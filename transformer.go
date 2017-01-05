@@ -44,13 +44,18 @@ func (fit *fiTransformerImpl) Transform() (map[string]financialInstrument, error
 }
 
 func getMappings(fit fiTransformerImpl) (fiMappings, error) {
-	secReader, err := fit.loader.LoadResource(securities)
+	latestResourcesFolderName, err := fit.loader.FindLatestResourcesFolder()
+	if err != nil {
+		return fiMappings{}, err
+	}
+
+	secReader, err := fit.loader.LoadResource(latestResourcesFolderName, securities)
 	if err != nil {
 		return fiMappings{}, err
 	}
 	defer secReader.Close()
 
-	secToOrgReader, err := fit.loader.LoadResource(securityEntityMap)
+	secToOrgReader, err := fit.loader.LoadResource(latestResourcesFolderName, securityEntityMap)
 	if err != nil {
 		return fiMappings{}, err
 	}
@@ -62,21 +67,21 @@ func getMappings(fit fiTransformerImpl) (fiMappings, error) {
 	}
 	// filter only if an entity parsing function exist
 	if parseEntities := fit.parser.parseEntityFunc(); parseEntities != nil {
-		entReader, err := fit.loader.LoadResource(entities)
+		entReader, err := fit.loader.LoadResource(latestResourcesFolderName, entities)
 		if err != nil {
 			return fiMappings{}, err
 		}
 		pubEnts := parseEntities(entReader)
 		applyPublicEntityFilter(fis, pubEnts)
 	}
-	lisReader, err := fit.loader.LoadResource(securities)
+	lisReader, err := fit.loader.LoadResource(latestResourcesFolderName, securities)
 	if err != nil {
 		return fiMappings{}, err
 	}
 	defer lisReader.Close()
 	listings := fit.parser.parseListings(lisReader, fis)
 
-	figiReader, err := fit.loader.LoadResource(secToFIGIs)
+	figiReader, err := fit.loader.LoadResource(latestResourcesFolderName, secToFIGIs)
 	if err != nil {
 		return fiMappings{}, err
 	}
