@@ -39,6 +39,12 @@ func main() {
 		Desc:   "s3 domain of factset bucket",
 		EnvVar: "S3_DOMAIN",
 	})
+	baseURL := app.String(cli.StringOpt{
+		Name:   "base-url",
+		Value:  "http://localhost:8080/transformers/financial-instruments/",
+		Desc:   "Base url",
+		EnvVar: "BASE_URL",
+	})
 	port := app.Int(cli.IntOpt{
 		Name:   "port",
 		Value:  8080,
@@ -66,8 +72,9 @@ func main() {
 			parser: &fiParser,
 		}
 		fis := fiServiceImpl{
-			fit:    &fit,
-			config: s3,
+			fit:     &fit,
+			config:  s3,
+			baseUrl: *baseURL,
 		}
 		go func() {
 			fis.Init()
@@ -88,6 +95,7 @@ func listen(h *httpHandler, port int) {
 	r := mux.NewRouter()
 	r.HandleFunc("/transformers/financial-instruments/__count", h.Count).Methods("GET")
 	r.HandleFunc("/transformers/financial-instruments/__ids", h.IDs).Methods("GET")
+	r.HandleFunc("/transformers/financial-instruments", h.getFinancialInstruments).Methods("GET")
 	r.HandleFunc("/transformers/financial-instruments/{id}", h.Read).Methods("GET")
 	r.HandleFunc("/__health", v1a.Handler("Financial Instruments Transformer Healthchecks", "Checks for accessing Amazon S3 bucket", h.amazonS3Healthcheck()))
 	r.HandleFunc("/__gtg", h.goodToGo)

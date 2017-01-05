@@ -12,6 +12,10 @@ type id struct {
 	ID string `json:"id"`
 }
 
+type apiUrl struct {
+	APIURL string `json:"apiUrl"`
+}
+
 type uppFI struct {
 	UUID           string         `json:"uuid"`
 	PrefLabel      string         `json:"prefLabel"`
@@ -96,5 +100,25 @@ func (h *httpHandler) Read(w http.ResponseWriter, r *http.Request) {
 		warnLogger.Printf("Could not return fi with uuid [%s]. Resource: [%v]. Err: [%v]", id, fi, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+}
+
+func (h *httpHandler) getFinancialInstruments(w http.ResponseWriter, r *http.Request) {
+	s := h.fiService
+
+	if !s.IsInitialised() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+
+	enc := json.NewEncoder(w)
+	for _, url := range s.apiUrls() {
+		err := enc.Encode(apiUrl{APIURL: url})
+		if err != nil {
+			warnLogger.Printf("Could not encode APIURL: [%s]. Err: [%v]", url, err)
+			continue
+		}
 	}
 }

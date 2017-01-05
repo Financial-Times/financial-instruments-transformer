@@ -4,6 +4,7 @@ type fiService interface {
 	Init()
 	Read(UUID string) (financialInstrument, bool)
 	IDs() []string
+	apiUrls() []string
 	Count() int
 	IsInitialised() bool
 	checkConnectivity() error
@@ -12,6 +13,7 @@ type fiService interface {
 type fiServiceImpl struct {
 	fit                  fiTransformer
 	config               s3Config
+	baseUrl              string
 	financialInstruments map[string]financialInstrument
 }
 
@@ -35,6 +37,15 @@ func (fis *fiServiceImpl) IDs() []string {
 		UUIDs = append(UUIDs, UUID)
 	}
 	return UUIDs
+}
+
+func (fis *fiServiceImpl) apiUrls() []string {
+	var apiUrls = []string{}
+	for uuid := range fis.financialInstruments {
+		apiUrl := fis.baseUrl + uuid
+		apiUrls = append(apiUrls, apiUrl)
+	}
+	return apiUrls
 }
 
 func (fis *fiServiceImpl) Count() int {
