@@ -46,13 +46,9 @@ func (s3Loader *s3Loader) FindLatestResourcesFolder() (string, error) {
 			return "", object.Err
 		}
 
-		if strings.Contains(object.Key, ".md5") {
-			continue
-		}
-
 		date, err := time.Parse(dateFormat, object.Key[:len(dateFormat)])
 		if err != nil {
-			warnLogger.Printf("Ignoring file [%s]. Cannot parse name. Error was [%v]", object.Key, err)
+			infoLogger.Printf("Ignoring file [%s]. Cannot parse name. Error was [%v]", object.Key, err)
 			continue
 		}
 
