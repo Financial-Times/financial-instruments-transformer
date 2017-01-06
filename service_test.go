@@ -209,8 +209,8 @@ func TestFiServiceImpl_ApiUrls(t *testing.T) {
 		baseUrl: baseUrl,
 	}
 
-	expected1 := []string{baseUrl + UUID1, baseUrl + UUID2}
-	expected2 := []string{baseUrl + UUID2, baseUrl + UUID1}
+	expected1 := []apiUrl{{APIURL: baseUrl + UUID1}, {APIURL: baseUrl + UUID2}}
+	expected2 := []apiUrl{{APIURL: baseUrl + UUID2}, {APIURL: baseUrl + UUID1}}
 
 	apiUrls := fis.apiUrls()
 
@@ -221,7 +221,7 @@ func TestFiServiceImpl_ApiUrls(t *testing.T) {
 
 func TestFiServiceImpl_ApiUrls_NotInitialisedService(t *testing.T) {
 	fis := fiServiceImpl{}
-	expected := []string{}
+	expected := []apiUrl{}
 
 	apiUrls := fis.apiUrls()
 
