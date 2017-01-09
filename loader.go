@@ -4,13 +4,13 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/pkg/errors"
 	"io"
-	"regexp"
 	"strings"
 	"time"
 )
 
 type loader interface {
-	LoadResource(name string) (io.ReadCloser, error)
+	FindLatestResourcesFolder() (string, error)
+	LoadResource(pathPrefix string, name string) (io.ReadCloser, error)
 	BucketExists() (bool, error)
 }
 
@@ -19,7 +19,7 @@ type s3Loader struct {
 	config s3Config
 }
 
-const financialInstrumentsFolderName = "financial-instruments"
+const dateFormat = "2006-01-02"
 
 func news3Loader(c s3Config) (s3Loader, error) {
 	s3Client, err := minio.New(c.domain, c.accKey, c.secretKey, true)
@@ -29,7 +29,44 @@ func news3Loader(c s3Config) (s3Loader, error) {
 	return s3Loader{*s3Client, c}, nil
 }
 
-func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {
+func (s3Loader *s3Loader) FindLatestResourcesFolder() (string, error) {
+	s3Client := &s3Loader.client
+	if s3Client == nil {
+		return "", errors.New("S3 bucket not initialised. Please call news3Loader(c s3Config) function first")
+	}
+
+	doneCh := make(chan struct{})
+	defer close(doneCh)
+
+	var latestDate time.Time
+
+	for object := range s3Client.ListObjects(s3Loader.config.bucket, "", true, doneCh) {
+
+		if object.Err != nil {
+			return "", object.Err
+		}
+
+		date, err := time.Parse(dateFormat, object.Key[:len(dateFormat)])
+		if err != nil {
+			infoLogger.Printf("Ignoring file [%s]. Cannot parse name. Error was [%v]", object.Key, err)
+			continue
+		}
+
+		if latestDate.IsZero() || date.After(latestDate) {
+			latestDate = date
+		}
+	}
+
+	if latestDate.IsZero() {
+		return "", errors.New("Could not find any directory that has a date as its name.")
+	}
+
+	latestDateFormatted := latestDate.Format(dateFormat)
+	infoLogger.Printf("Found latest folder: [%s]", latestDateFormatted)
+	return latestDateFormatted, nil
+}
+
+func (s3Loader *s3Loader) LoadResource(pathPrefix string, resourceName string) (io.ReadCloser, error) {
 	s3Client := &s3Loader.client
 	if s3Client == nil {
 		return nil, errors.New("S3 bucket not initialised. Please call news3Loader(c s3Config) function first")
@@ -38,39 +75,18 @@ func (s3Loader *s3Loader) LoadResource(path string) (io.ReadCloser, error) {
 	doneCh := make(chan struct{})
 	defer close(doneCh)
 
-	r := regexp.MustCompile("[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])")
-	var latestObj = &struct {
-		object minio.ObjectInfo
-		date   time.Time
-	}{}
-
-	for object := range s3Client.ListObjects(s3Loader.config.bucket, financialInstrumentsFolderName, true, doneCh) {
+	for object := range s3Client.ListObjects(s3Loader.config.bucket, pathPrefix, true, doneCh) {
 		if object.Err != nil {
 			return nil, object.Err
 		}
 
-		if !strings.Contains(object.Key, path) {
-			continue
-		}
-
-		dateFromName := r.FindStringSubmatch(object.Key)
-		if len(dateFromName) == 0 {
-			warnLogger.Printf("Ignoring file [%s]. Cannot parse name.", object.Key)
-			continue
-		}
-		date, err := time.Parse("2006-01-02", dateFromName[0])
-		if err != nil {
-			errorLogger.Println(err)
-			continue
-		}
-
-		if latestObj == nil || date.After(latestObj.date) {
-			latestObj.object = object
-			latestObj.date = date
+		if strings.Contains(object.Key, resourceName) {
+			infoLogger.Printf("Loading object: [%s] for resource [%s]", object.Key, resourceName)
+			return s3Client.GetObject(s3Loader.config.bucket, object.Key)
 		}
 	}
-	infoLogger.Printf("Loading object: [%s] for resource [%s]", latestObj.object.Key, path)
-	return s3Client.GetObject(s3Loader.config.bucket, latestObj.object.Key)
+
+	return nil, errors.New("Cannot find resource with name [" + resourceName + "] and path prefix [" + pathPrefix + "].")
 }
 
 func (s3Loader *s3Loader) BucketExists() (bool, error) {

@@ -10,12 +10,17 @@ import (
 )
 
 type loaderMock struct {
-	mockLoadResources func(name string) (io.ReadCloser, error)
-	mockBucketExists  func() (bool, error)
+	mockFindLatestResourcesFolder func() (string, error)
+	mockLoadResources             func(pathPrefix string, name string) (io.ReadCloser, error)
+	mockBucketExists              func() (bool, error)
 }
 
-func (l *loaderMock) LoadResource(name string) (io.ReadCloser, error) {
-	return l.mockLoadResources(name)
+func (l *loaderMock) FindLatestResourcesFolder() (string, error) {
+	return l.mockFindLatestResourcesFolder()
+}
+
+func (l *loaderMock) LoadResource(pathPrefix string, name string) (io.ReadCloser, error) {
+	return l.mockLoadResources(pathPrefix, name)
 }
 
 func (l *loaderMock) BucketExists() (bool, error) {
@@ -54,7 +59,10 @@ func (s3 *s3LoaderMock) LoadResource(name string) (io.Reader, error) {
 }
 
 var lm = &loaderMock{
-	mockLoadResources: func(name string) (io.ReadCloser, error) {
+	mockFindLatestResourcesFolder: func() (string, error) {
+		return "", nil
+	},
+	mockLoadResources: func(pathPrefix string, name string) (io.ReadCloser, error) {
 		return ioutil.NopCloser(strings.NewReader("")), nil
 	},
 }
@@ -80,7 +88,10 @@ func TestGetMappings(t *testing.T) {
 		// loader error
 		{
 			lm: &loaderMock{
-				mockLoadResources: func(name string) (io.ReadCloser, error) {
+				mockFindLatestResourcesFolder: func() (string, error) {
+					return "", nil
+				},
+				mockLoadResources: func(pathPrefix string, name string) (io.ReadCloser, error) {
 					return nil, errLoader
 				},
 			},
