@@ -21,6 +21,7 @@ How to Build & Run the binary
         export AWS_SECRET_ACCESS_KEY="***" \
             && export AWS_ACCESS_KEY_ID="***" \
             && export BUCKET_NAME="com.ft.coco-factset-data" \
+            && export BASE_URL="http://myhost/transformers/financial-instruments/" \
             && ./financial-instruments-transformer
 
 Endpoints
@@ -40,7 +41,13 @@ Successful response:
 Successful response:
     * status code: 200
     * body: `{"id":"0c6842aa-e858-3053-b034-687e6db9578a"}\n{"id":"3bb726ff-7bf3-3303-8b09-caa226cdd208"}\n...`
-    
+
+3. /transformers/financial-instruments: reads the IDs of the financial instruments and returns them formatted as API URLs.
+
+Successful response:
+    * status code: 200
+    * body: `[{"apiUrl":"http://<host>:8080/transformers/financial-instruments/bebcca96-a20e-3f38-9af9-88a4d008c3bb"},{"apiUrl":"http://<host>:8080/transformers/financial-instruments/e2bf1e03-7707-3ddd-b6b5-130064a02f63"},...\n]`
+
 Admin endpoints
 ---------------
 Health checks: http://localhost:8080/__health    

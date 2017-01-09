@@ -25,8 +25,13 @@ type alternativeIDs struct {
 	FIGI      string   `json:"figiCode"`
 }
 
+type apiUrl struct {
+	APIURL string `json:"apiUrl"`
+}
+
 type httpHandler struct {
 	fiService fiService
+	baseUrl   string
 }
 
 func (h *httpHandler) Count(w http.ResponseWriter, r *http.Request) {
@@ -96,5 +101,29 @@ func (h *httpHandler) Read(w http.ResponseWriter, r *http.Request) {
 		warnLogger.Printf("Could not return fi with uuid [%s]. Resource: [%v]. Err: [%v]", id, fi, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+}
+
+func (h *httpHandler) getFinancialInstruments(w http.ResponseWriter, r *http.Request) {
+	s := h.fiService
+
+	if !s.IsInitialised() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+
+	var apiUrls = []apiUrl{}
+	for _, uuid := range s.IDs() {
+		apiUrl := apiUrl{APIURL: h.baseUrl + uuid}
+		apiUrls = append(apiUrls, apiUrl)
+	}
+
+	err := json.NewEncoder(w).Encode(apiUrls)
+
+	if err != nil {
+		warnLogger.Printf("Error on json encoding=%v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
