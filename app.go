@@ -39,7 +39,7 @@ func main() {
 		Desc:   "s3 domain of factset bucket",
 		EnvVar: "S3_DOMAIN",
 	})
-	baseURL := app.String(cli.StringOpt{
+	baseUrl := app.String(cli.StringOpt{
 		Name:   "base-url",
 		Value:  "http://localhost:8080/transformers/financial-instruments/",
 		Desc:   "Base url",
@@ -72,15 +72,14 @@ func main() {
 			parser: &fiParser,
 		}
 		fis := fiServiceImpl{
-			fit:     &fit,
-			config:  s3,
-			baseUrl: *baseURL,
+			fit:    &fit,
+			config: s3,
 		}
 		go func() {
 			fis.Init()
 		}()
 
-		httpHandler := &httpHandler{fiService: &fis}
+		httpHandler := &httpHandler{fiService: &fis, baseUrl: *baseUrl}
 		listen(httpHandler, *port)
 	}
 

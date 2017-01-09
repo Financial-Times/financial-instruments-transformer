@@ -189,47 +189,6 @@ func TestFiServiceImpl_IDs_NotInitialisedService(t *testing.T) {
 	}
 }
 
-func TestFiServiceImpl_ApiUrls(t *testing.T) {
-	UUID1 := "7d4fdd8b-3bad-3766-af4a-b26a7bc56f10"
-	UUID2 := "24d7f133-d30b-394f-970c-5a5e3ed66061"
-	baseUrl := "fiAppURL/"
-
-	fi := financialInstrument{
-		securityID:   "S10JZW-S-CA",
-		securityName: "QUIZAM MEDIA CORP COM",
-		figiCode:     "BBG000D9Y7X",
-		orgID:        "6745b841-6f2f-3741-bf2f-80d13ec68bdd",
-	}
-
-	fis := fiServiceImpl{
-		financialInstruments: map[string]financialInstrument{
-			UUID1: fi,
-			UUID2: fi,
-		},
-		baseUrl: baseUrl,
-	}
-
-	expected1 := []apiUrl{{APIURL: baseUrl + UUID1}, {APIURL: baseUrl + UUID2}}
-	expected2 := []apiUrl{{APIURL: baseUrl + UUID2}, {APIURL: baseUrl + UUID1}}
-
-	apiUrls := fis.apiUrls()
-
-	if !reflect.DeepEqual(apiUrls, expected1) && !reflect.DeepEqual(apiUrls, expected2) {
-		t.Errorf("Expected: [%v] or [%v]. Actual: [%v]", expected1, expected2, apiUrls)
-	}
-}
-
-func TestFiServiceImpl_ApiUrls_NotInitialisedService(t *testing.T) {
-	fis := fiServiceImpl{}
-	expected := []apiUrl{}
-
-	apiUrls := fis.apiUrls()
-
-	if !reflect.DeepEqual(apiUrls, expected) {
-		t.Errorf("Expected: [%v]. Actual: [%v]", expected, apiUrls)
-	}
-}
-
 func TestFiServiceImpl_Init(t *testing.T) {
 	UUID1 := "7d4fdd8b-3bad-3766-af4a-b26a7bc56f10"
 	UUID2 := "24d7f133-d30b-394f-970c-5a5e3ed66061"

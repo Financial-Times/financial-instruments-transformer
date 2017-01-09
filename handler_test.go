@@ -244,8 +244,8 @@ func TestGetFinancialInstruments_FinancialInstrumentsMapIsNotNil_ApiIdsInStreami
 	}
 
 	for _, tc := range testCases {
-		fi := &fiServiceImpl{financialInstruments: tc.fiMap, baseUrl: baseUrl}
-		h := httpHandler{fiService: fi}
+		fi := &fiServiceImpl{financialInstruments: tc.fiMap}
+		h := httpHandler{fiService: fi, baseUrl: baseUrl}
 		w := httptest.NewRecorder()
 		h.getFinancialInstruments(w, req)
 

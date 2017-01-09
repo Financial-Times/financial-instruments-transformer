@@ -25,8 +25,13 @@ type alternativeIDs struct {
 	FIGI      string   `json:"figiCode"`
 }
 
+type apiUrl struct {
+	APIURL string `json:"apiUrl"`
+}
+
 type httpHandler struct {
 	fiService fiService
+	baseUrl   string
 }
 
 func (h *httpHandler) Count(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +114,13 @@ func (h *httpHandler) getFinancialInstruments(w http.ResponseWriter, r *http.Req
 
 	w.Header().Add("Content-Type", "application/json")
 
-	err := json.NewEncoder(w).Encode(s.apiUrls())
+	var apiUrls = []apiUrl{}
+	for _, uuid := range s.IDs() {
+		apiUrl := apiUrl{APIURL: h.baseUrl + uuid}
+		apiUrls = append(apiUrls, apiUrl)
+	}
+
+	err := json.NewEncoder(w).Encode(apiUrls)
 
 	if err != nil {
 		warnLogger.Printf("Error on json encoding=%v\n", err)
