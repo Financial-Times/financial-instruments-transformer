@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"reflect"
@@ -11,20 +12,28 @@ import (
 
 type loaderMock struct {
 	mockFindLatestResourcesFolder func() (string, error)
-	mockLoadResources             func(pathPrefix string, name string) (io.ReadCloser, error)
 	mockBucketExists              func() (bool, error)
+	mockGetResourceBundle         func(pathPrefix string) (resourceBundle, error)
+}
+
+type mockResourceBundle struct {
+	mockGet func(name string) (io.ReadCloser, error)
+}
+
+func (rb *mockResourceBundle) get(name string) (io.ReadCloser, error) {
+	return rb.mockGet(name)
 }
 
 func (l *loaderMock) FindLatestResourcesFolder() (string, error) {
 	return l.mockFindLatestResourcesFolder()
 }
 
-func (l *loaderMock) LoadResource(pathPrefix string, name string) (io.ReadCloser, error) {
-	return l.mockLoadResources(pathPrefix, name)
-}
-
 func (l *loaderMock) BucketExists() (bool, error) {
 	return l.mockBucketExists()
+}
+
+func (l *loaderMock) GetResourceBundle(pathPrefix string) (resourceBundle, error) {
+	return l.mockGetResourceBundle(pathPrefix)
 }
 
 type parserMock struct {
@@ -58,12 +67,20 @@ func (s3 *s3LoaderMock) LoadResource(name string) (io.Reader, error) {
 	return s3.mockLoad(name)
 }
 
+func (s3 *s3LoaderMock) GetResourceBundle(name string) (resourceBundle, error) {
+	return nil, nil
+}
+
 var lm = &loaderMock{
 	mockFindLatestResourcesFolder: func() (string, error) {
 		return "", nil
 	},
-	mockLoadResources: func(pathPrefix string, name string) (io.ReadCloser, error) {
-		return ioutil.NopCloser(strings.NewReader("")), nil
+	mockGetResourceBundle: func(pathPrefix string) (resourceBundle, error) {
+		return &mockResourceBundle{
+			mockGet: func(name string) (io.ReadCloser, error) {
+				return ioutil.NopCloser(strings.NewReader("")), nil
+			},
+		}, nil
 	},
 }
 
@@ -80,6 +97,7 @@ var errLoader = errors.New("Error loading resource")
 
 func TestGetMappings(t *testing.T) {
 	var tests = []struct {
+		nm       string
 		lm       loader
 		pm       *parserMock
 		err      error
@@ -87,11 +105,12 @@ func TestGetMappings(t *testing.T) {
 	}{
 		// loader error
 		{
+			nm: "loader error",
 			lm: &loaderMock{
 				mockFindLatestResourcesFolder: func() (string, error) {
 					return "", nil
 				},
-				mockLoadResources: func(pathPrefix string, name string) (io.ReadCloser, error) {
+				mockGetResourceBundle: func(pathPrefix string) (resourceBundle, error) {
 					return nil, errLoader
 				},
 			},
@@ -101,6 +120,7 @@ func TestGetMappings(t *testing.T) {
 		},
 		// nil & empty cases
 		{
+			nm: "nil",
 			lm: lm,
 			pm: &parserMock{
 				mockParseFIs: func() (map[string]rawFinancialInstrument, error) {
@@ -118,6 +138,7 @@ func TestGetMappings(t *testing.T) {
 			expected: fiMappings{},
 		},
 		{
+			nm: "empty cases",
 			lm: lm,
 			pm: &parserMock{
 				mockParseFIs: func() (map[string]rawFinancialInstrument, error) {
@@ -138,6 +159,7 @@ func TestGetMappings(t *testing.T) {
 		},
 		// happy case
 		{
+			nm: "happy case",
 			lm: lm,
 			pm: &parserMock{
 				mockParseFIs: func() (map[string]rawFinancialInstrument, error) {
@@ -181,13 +203,15 @@ func TestGetMappings(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		m, err := getMappings(fiTransformerImpl{tc.lm, tc.pm})
-		if err != tc.err {
-			t.Errorf("Expected error: [%v]. Actual: [%v]", tc.err, err)
-		}
-		if !reflect.DeepEqual(m, tc.expected) {
-			t.Errorf("Expected: [%v]. Actual: [%v]", tc.expected, m)
-		}
+		t.Run(fmt.Sprintf("Case [%v]", tc.nm), func(t *testing.T) {
+			m, err := getMappings(fiTransformerImpl{tc.lm, tc.pm})
+			if err != tc.err {
+				t.Errorf("Expected error: [%v]. Actual: [%v]", tc.err, err)
+			}
+			if !reflect.DeepEqual(m, tc.expected) {
+				t.Errorf("Expected: [%v]. Actual: [%v]", tc.expected, m)
+			}
+		})
 	}
 }
 
