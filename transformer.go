@@ -7,10 +7,12 @@ import (
 	"time"
 )
 
-const secToFIGIs = "sym_bbg"
-const securities = "sym_coverage"
-const securityEntityMap = "sym_sec_entity"
-const entities = "ent_entity_coverage"
+const (
+	secToFIGIs        = "sym_bbg"
+	securities        = "sym_coverage"
+	securityEntityMap = "sym_sec_entity"
+	entities          = "ent_entity_coverage"
+)
 
 type fiTransformer interface {
 	Transform() (map[string]financialInstrument, error)
@@ -49,13 +51,18 @@ func getMappings(fit fiTransformerImpl) (fiMappings, error) {
 		return fiMappings{}, err
 	}
 
-	secReader, err := fit.loader.LoadResource(latestResourcesFolderName, securities)
+	r, err := fit.loader.GetResourceBundle(latestResourcesFolderName)
+	if err != nil {
+		return fiMappings{}, err
+	}
+
+	secReader, err := r.get(securities)
 	if err != nil {
 		return fiMappings{}, err
 	}
 	defer secReader.Close()
 
-	secToOrgReader, err := fit.loader.LoadResource(latestResourcesFolderName, securityEntityMap)
+	secToOrgReader, err := r.get(securityEntityMap)
 	if err != nil {
 		return fiMappings{}, err
 	}
@@ -67,21 +74,21 @@ func getMappings(fit fiTransformerImpl) (fiMappings, error) {
 	}
 	// filter only if an entity parsing function exist
 	if parseEntities := fit.parser.parseEntityFunc(); parseEntities != nil {
-		entReader, err := fit.loader.LoadResource(latestResourcesFolderName, entities)
+		entReader, err := r.get(entities)
 		if err != nil {
 			return fiMappings{}, err
 		}
 		pubEnts := parseEntities(entReader)
 		applyPublicEntityFilter(fis, pubEnts)
 	}
-	lisReader, err := fit.loader.LoadResource(latestResourcesFolderName, securities)
+	lisReader, err := r.get(securities)
 	if err != nil {
 		return fiMappings{}, err
 	}
 	defer lisReader.Close()
 	listings := fit.parser.parseListings(lisReader, fis)
 
-	figiReader, err := fit.loader.LoadResource(latestResourcesFolderName, secToFIGIs)
+	figiReader, err := r.get(secToFIGIs)
 	if err != nil {
 		return fiMappings{}, err
 	}
