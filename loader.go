@@ -3,12 +3,14 @@ package main
 import (
 	"archive/zip"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/minio/minio-go"
 	"github.com/pkg/errors"
-	"io"
-	"path/filepath"
-	"time"
 )
 
 const (
@@ -89,35 +91,19 @@ func (s3Loader *s3Loader) FindLatestResourcesFolder() (string, error) {
 		return "", errors.New("S3 bucket not initialised. Please call news3Loader(c s3Config) function first")
 	}
 
-	doneCh := make(chan struct{})
-	defer close(doneCh)
-
-	var latestDate time.Time
-
-	for object := range s3Client.ListObjects(s3Loader.config.bucket, "", true, doneCh) {
-
-		if object.Err != nil {
-			return "", object.Err
-		}
-
-		date, err := time.Parse(dateFormat, object.Key[:len(dateFormat)])
-		if err != nil {
-			log.Infof("Ignoring file [%s]. Cannot parse name. Error was [%v]", object.Key, err)
-			continue
-		}
-
-		if latestDate.IsZero() || date.After(latestDate) {
-			latestDate = date
-		}
+	obj, err := s3Client.GetObject(s3Loader.config.bucket, "weekly")
+	if err != nil {
+		log.Errorf("Error getting weekly index file: %s", err)
+		return "", err
 	}
-
-	if latestDate.IsZero() {
-		return "", errors.New("Could not find any directory that has a date as its name.")
+	content, err := ioutil.ReadAll(obj)
+	if err != nil {
+		log.Errorf("Error reading weekly index file: %s", err)
+		return "", err
 	}
-
-	latestDateFormatted := latestDate.Format(dateFormat)
-	log.Infof("Found latest folder: [%s]", latestDateFormatted)
-	return latestDateFormatted, nil
+	folder := strings.Split(string(content), "/")[0]
+	log.Infof("Found latest folder: [%s]", folder)
+	return folder, nil
 }
 
 func (s3Loader *s3Loader) BucketExists() (bool, error) {
