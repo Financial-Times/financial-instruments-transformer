@@ -54,6 +54,6 @@ Health checks: http://localhost:8080/__health
     
 Notes
 -----
-
-As of today (10th of August) the transformer resolves multiple entities/securities pointing to the same FIGI by choosing the record which is non-expired (has no termination date)
+- The transformer uses the `weekly` index file in the S3 bucket, which contains the key to the latest weekly file.  This file is created/updated by the Factset Reader when it uploads a new zip.
+- As of today (10th of August) the transformer resolves multiple entities/securities pointing to the same FIGI by choosing the record which is non-expired (has no termination date)
 If there are more records with no termination date, one randomly will be picked.  
