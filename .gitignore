@@ -1,5 +1,4 @@
 .fitrc
 .idea
 *.iml
-financial-instruments-transformer
-*.exe
+/financial-instruments-transformer*
