@@ -1,4 +1,4 @@
-Financial Instruments Transformer
+[RETIRED] Financial Instruments Transformer
 =================================
 
 [![Circle CI](https://circleci.com/gh/Financial-Times/financial-instruments-transformer/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/financial-instruments-transformer/tree/master)
